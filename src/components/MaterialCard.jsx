@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
 
 const MaterialCard = ({ imagePath, source, time, material, onClick, className = '' }) => {
   const [imageError, setImageError] = useState(false);
@@ -13,33 +14,75 @@ const MaterialCard = ({ imagePath, source, time, material, onClick, className = 
     }
   };
 
-  // 根据内容类型获取标签样式
-  const getTagStyle = (type) => {
-    switch (type) {
-      case '推文':
-        return 'bg-green-100 text-green-700';
-      case '长图':
-        return 'bg-blue-100 text-blue-700';
-      case '视频':
-        return 'bg-purple-100 text-purple-700';
+  // 获取渠道图标和颜色
+  const getChannelIcon = (channel) => {
+    switch (channel) {
+      case '公众号':
+      case '微信':
+        return {
+          icon: MessageCircle,
+          color: 'bg-green-500',
+          bgColor: 'bg-green-50',
+        };
+      case '蚂蚁财富号':
+      case '支付宝':
+        return {
+          icon: CreditCard,
+          color: 'bg-blue-500',
+          bgColor: 'bg-blue-50',
+        };
+      case '小红书':
+        return {
+          icon: Instagram,
+          color: 'bg-red-500',
+          bgColor: 'bg-red-50',
+        };
       default:
-        return 'bg-gray-100 text-gray-700';
+        return {
+          icon: MessageCircle,
+          color: 'bg-gray-500',
+          bgColor: 'bg-gray-50',
+        };
     }
   };
 
-  // 如果传入了 className 且包含 w-full，则使用自适应宽度，否则使用固定宽度
+  // 生成标题（从 summary 提取前15个字符）
+  const getTitle = () => {
+    if (material?.title) return material.title;
+    if (material?.summary) {
+      return material.summary.length > 15
+        ? material.summary.substring(0, 15) + '...'
+        : material.summary;
+    }
+    return '';
+  };
+
+  // 获取互动数据（如果没有则使用默认值）
+  const getInteraction = () => {
+    return material?.interaction || '503';
+  };
+
+  const channelInfo = getChannelIcon(material?.channel || '公众号');
+  const ChannelIcon = channelInfo.icon;
   const widthClass = className.includes('w-full') ? '' : 'w-64';
-  
+
   return (
     <div className={`flex-shrink-0 ${widthClass} group cursor-pointer ${className}`}>
       <div
         className="relative overflow-hidden rounded-xl bg-gray-100 aspect-[3/4] mb-3 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg"
         onClick={handleClick}
       >
-        {/* 内容类型标签 - 左上角 */}
+        {/* 内容类型标签 - 左上角，半透明黑底白字 */}
         {material?.type && (
-          <div className={`absolute top-3 left-3 z-10 px-2.5 py-1 ${getTagStyle(material.type)} text-xs font-medium rounded-md`}>
+          <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-black/60 backdrop-blur-md text-white text-xs font-medium rounded-full">
             {material.type}
+          </div>
+        )}
+
+        {/* 渠道图标 - 右上角 */}
+        {material?.channel && (
+          <div className={`absolute top-3 right-3 z-10 w-7 h-7 ${channelInfo.color} rounded-full flex items-center justify-center shadow-md`}>
+            <ChannelIcon className="w-4 h-4 text-white" />
           </div>
         )}
 
@@ -69,52 +112,51 @@ const MaterialCard = ({ imagePath, source, time, material, onClick, className = 
           />
         )}
 
-        {/* 悬停遮罩 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center">
-          {/* 查看详情图标 */}
-          <div className="mb-16">
-            <div className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
-              <svg
-                className="w-6 h-6 text-gray-900"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                />
-              </svg>
-            </div>
-          </div>
-
-          {/* 热度数据 - 底部浮现 */}
-          {material?.heat && (
-            <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="flex items-center text-white text-xs font-medium">
-                <span className="mr-1">🔥</span>
-                <span>热度 {material.heat}</span>
-              </div>
-            </div>
-          )}
+        {/* 悬停遮罩 - 显示"查看内容逻辑"按钮 */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick();
+            }}
+            className="px-4 py-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg text-sm font-medium text-gray-900 hover:bg-white transition-all duration-200 hover:scale-105"
+          >
+            查看内容逻辑
+          </button>
         </div>
       </div>
 
-      {/* 底部信息 - 换行显示 */}
+      {/* 底部信息区 */}
       <div className="px-1">
-        <div className="text-sm font-semibold text-gray-900 truncate">
-          {source}
+        {/* 标题/摘要 */}
+        {getTitle() && (
+          <div className="text-sm font-medium text-gray-800 truncate mb-2">
+            {getTitle()}
+          </div>
+        )}
+
+        {/* 厂商行 */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            {/* Logo 圆形占位 */}
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+            <span className="text-xs font-bold text-gray-900 truncate">{source}</span>
+          </div>
+          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{time}</span>
         </div>
-        <div className="text-xs text-gray-400 mt-1">
-          {time}
+
+        {/* 数据行 */}
+        <div className="bg-gray-50 rounded-md px-2 py-1.5 flex items-center gap-3 text-xs text-gray-600">
+          {material?.heat && (
+            <span className="flex items-center gap-1">
+              <span>🔥</span>
+              <span>热度 {material.heat}</span>
+            </span>
+          )}
+          <span className="flex items-center gap-1">
+            <span>👍</span>
+            <span>互动 {getInteraction()}</span>
+          </span>
         </div>
       </div>
     </div>

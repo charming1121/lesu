@@ -34,6 +34,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # 如果您的仓库名称不是根路径，取消下面的注释并设置正确的路径
+          # VITE_BASE_PATH: /your-repo-name/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

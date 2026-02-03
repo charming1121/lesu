@@ -1,5 +1,14 @@
 # GitHub Pages 部署指南
 
+## ⚠️ 重要：先启用 GitHub Pages
+
+在运行 GitHub Actions 之前，**必须先手动启用 GitHub Pages**：
+
+1. 进入仓库的 **Settings** 页面
+2. 在左侧菜单找到 **Pages**
+3. 在 **Source** 下拉菜单中选择 **GitHub Actions**
+4. 点击 **Save** 保存设置
+
 ## 方法一：使用 GitHub Actions（推荐）
 
 ### 1. 创建 GitHub 仓库
@@ -27,17 +36,30 @@ git branch -M main
 git push -u origin main
 ```
 
-### 3. 启用 GitHub Pages
+### 3. 启用 GitHub Pages（必须！）
+
+**重要：这一步必须在推送代码后立即完成**
 
 1. 进入仓库的 **Settings** 页面
 2. 在左侧菜单找到 **Pages**
 3. 在 **Source** 下拉菜单中选择 **GitHub Actions**
-4. 保存设置
+4. 点击 **Save** 保存设置
 
 ### 4. 自动部署
 
-- 每次推送到 `main` 分支时，GitHub Actions 会自动构建并部署
+- 如果已经启用了 GitHub Pages，推送代码后会自动触发部署
+- 如果还没启用，先完成步骤3，然后重新推送一次代码或手动触发工作流
 - 部署完成后，访问地址为：`https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`
+
+## 方法二：使用简化版工作流（如果方法一失败）
+
+如果遇到 "Setup Pages" 错误，可以使用简化版工作流：
+
+1. 删除 `.github/workflows/deploy.yml`
+2. 将 `.github/workflows/deploy-simple.yml` 重命名为 `deploy.yml`
+3. 重新推送代码
+
+或者直接使用 `gh-pages` 包手动部署（见方法三）
 
 ## 方法二：手动部署
 
