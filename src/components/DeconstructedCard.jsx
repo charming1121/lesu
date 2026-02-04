@@ -228,7 +228,6 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
             )}
             <span className="text-xs font-medium text-gray-700 truncate">{material?.source}</span>
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0">{material?.time}</span>
         </div>
       </div>
     </div>

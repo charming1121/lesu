@@ -161,7 +161,6 @@ const MaterialCard = ({ imagePath, source, time, material, onClick, className = 
             )}
             <span className="text-xs font-bold text-gray-900 truncate">{source}</span>
           </div>
-          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{time}</span>
         </div>
 
         {/* 数据行 */}

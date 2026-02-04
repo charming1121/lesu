@@ -112,7 +112,7 @@ const MaterialModal = ({ isOpen, onClose, material }) => {
               </div>
             </div>
             <div className="text-sm text-gray-600 mt-1 ml-11">
-              {material.source} · {material.time}
+              {material.source}
             </div>
           </div>
 
