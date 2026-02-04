@@ -1,12 +1,22 @@
 import React, { useState } from 'react';
 import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
+import { getCompanyLogo, hasCompanyLogo } from '../utils/companyLogo';
 
 const MaterialCard = ({ imagePath, source, time, material, onClick, className = '' }) => {
   const [imageError, setImageError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const handleImageError = () => {
     setImageError(true);
   };
+
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+  
+  // 获取公司logo路径
+  const companyLogo = source ? getCompanyLogo(source) : null;
+  const showLogo = companyLogo && !logoError && hasCompanyLogo(source);
 
   const handleClick = () => {
     if (onClick && material) {
@@ -138,8 +148,17 @@ const MaterialCard = ({ imagePath, source, time, material, onClick, className = 
         {/* 厂商行 */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            {/* Logo 圆形占位 */}
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+            {showLogo ? (
+              <img
+                src={companyLogo}
+                alt={source || '基金公司'}
+                className="w-5 h-5 object-contain flex-shrink-0 rounded-sm"
+                onError={handleLogoError}
+                style={{ maxHeight: '20px' }}
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+            )}
             <span className="text-xs font-bold text-gray-900 truncate">{source}</span>
           </div>
           <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{time}</span>

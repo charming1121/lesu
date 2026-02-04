@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
+import { MessageCircle, CreditCard, Instagram, Eye, Share2, Heart, Bookmark, MessageSquare } from 'lucide-react';
+import { getCompanyLogo, hasCompanyLogo } from '../utils/companyLogo';
 
 /**
  * 解构卡片 (Deconstructed Card)
@@ -7,10 +8,19 @@ import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
  */
 const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
   const [imageError, setImageError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   const handleImageError = () => {
     setImageError(true);
   };
+
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
+  
+  // 获取公司logo路径
+  const companyLogo = material?.source ? getCompanyLogo(material.source) : null;
+  const showLogo = companyLogo && !logoError && hasCompanyLogo(material?.source);
 
   const handleClick = () => {
     if (onClick && material) {
@@ -170,10 +180,52 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
           )}
         </div>
 
+        {/* 曝光指标 */}
+        {(material?.views || material?.forwards || material?.likes) && (
+          <div className="pt-2 border-t border-gray-100">
+            <div className="flex items-center gap-2.5 text-xs text-gray-600 flex-wrap">
+              {material.views && (
+                <div className="flex items-center gap-1" title="阅读量">
+                  <Eye className="w-3.5 h-3.5 text-blue-500" />
+                  <span className="font-medium text-gray-700">{material.views}</span>
+                </div>
+              )}
+              {material.forwards && (
+                <div className="flex items-center gap-1" title="转发量">
+                  <Share2 className="w-3.5 h-3.5 text-green-500" />
+                  <span className="font-medium text-gray-700">{material.forwards}</span>
+                </div>
+              )}
+              {material.likes && (
+                <div className="flex items-center gap-1" title="点赞数">
+                  <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+                  <span className="font-medium text-gray-700">{material.likes}</span>
+                </div>
+              )}
+              {material.collects && (
+                <div className="flex items-center gap-1" title="收藏数">
+                  <Bookmark className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                  <span className="font-medium text-gray-700">{material.collects}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 底部信息 */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+            {showLogo ? (
+              <img
+                src={companyLogo}
+                alt={material?.source || '基金公司'}
+                className="w-4 h-4 object-contain flex-shrink-0 rounded-sm"
+                onError={handleLogoError}
+                style={{ maxHeight: '16px' }}
+              />
+            ) : (
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex-shrink-0"></div>
+            )}
             <span className="text-xs font-medium text-gray-700 truncate">{material?.source}</span>
           </div>
           <span className="text-xs text-gray-400 flex-shrink-0">{material?.time}</span>

@@ -123,7 +123,44 @@ const CompetitiveIntelligenceFeed = () => {
       });
     }
     
-    return filtered;
+    // 排序：长图优先，然后尽可能让不同公司位于前几个
+    // 分离长图和非长图
+    const longImages = filtered.filter(m => m.type === '长图');
+    const otherMaterials = filtered.filter(m => m.type !== '长图');
+    
+    // 对长图和非长图分别进行公司多样性排序
+    const diversifyByCompany = (materials) => {
+      const sorted = [];
+      const usedCompanies = new Set();
+      const remaining = [...materials];
+      
+      // 优先选择不同公司的素材
+      let index = 0;
+      while (index < remaining.length && sorted.length < materials.length) {
+        const current = remaining[index];
+        const company = current.source || '未知';
+        
+        if (!usedCompanies.has(company)) {
+          sorted.push(current);
+          usedCompanies.add(company);
+          remaining.splice(index, 1);
+          index = 0; // 重新开始查找
+        } else {
+          index++;
+        }
+      }
+      
+      // 添加剩余的素材（同一公司的）
+      sorted.push(...remaining);
+      return sorted;
+    };
+    
+    // 分别对长图和非长图进行公司多样性排序
+    const sortedLongImages = diversifyByCompany(longImages);
+    const sortedOtherMaterials = diversifyByCompany(otherMaterials);
+    
+    // 合并：长图在前，非长图在后
+    return [...sortedLongImages, ...sortedOtherMaterials];
   }, [activeTab, filterType, labeledMaterials, loading]);
   
   // 获取当前筛选类型的所有选项

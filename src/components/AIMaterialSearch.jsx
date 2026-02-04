@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Sparkles, Filter, Loader2, ChevronRight } from 'lucide-react';
-import MaterialCard from './MaterialCard';
-import MaterialModal from './MaterialModal';
-import AssetCardSkeleton from './AssetCardSkeleton';
-import { allMaterials } from '../data/materialsData';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, Sparkles, Loader2, ChevronRight } from 'lucide-react';
+import DeconstructedCard from './DeconstructedCard';
+import MaterialDetail from './MaterialDetail';
+import { getLabeledMaterials } from '../data/labeledMaterialsData';
+import { extractKeywords, searchMaterials } from '../utils/nlpQuery';
 
 /**
  * AI 素材检索页面 (AI Material Search)
@@ -16,110 +16,49 @@ const AIMaterialSearch = () => {
   const [aiThinking, setAiThinking] = useState(false);
   const [currentSearch, setCurrentSearch] = useState(null);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [labeledMaterials, setLabeledMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12);
+  const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+
+  // 加载标签数据
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const materials = await getLabeledMaterials();
+        console.log('[AIMaterialSearch] 加载素材数据:', materials.length, '条');
+        if (materials.length > 0) {
+          console.log('[AIMaterialSearch] 前3个素材:', materials.slice(0, 3).map(m => ({
+            id: m.id,
+            title: m.title?.substring(0, 20),
+            视觉风格: m.视觉风格
+          })));
+        }
+        setLabeledMaterials(materials);
+      } catch (error) {
+        console.error('[AIMaterialSearch] Failed to load labeled materials:', error);
+        setLabeledMaterials([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // 建议芯片
   const suggestionChips = [
-    '近期热门ETF海报',
-    '基金经理路演视频',
-    '一季度策略长图',
-    '红利低波相关素材',
+    '科技风格的相关素材',
+    '热点解读的长图',
+    '产品宣传的海报',
+    '新能源行业的素材',
   ];
 
-  // 模拟 AI 意图解析（从用户查询中提取筛选条件）
-  const parseQueryIntent = (queryText) => {
-    const intent = {
-      keywords: [],
-      platform: null,
-      contentType: null,
-      theme: null,
-    };
-
-    const lowerQuery = queryText.toLowerCase();
-
-    // 平台识别
-    if (lowerQuery.includes('微信') || lowerQuery.includes('公众号')) {
-      intent.platform = '公众号';
-    } else if (lowerQuery.includes('蚂蚁') || lowerQuery.includes('支付宝')) {
-      intent.platform = '蚂蚁财富号';
-    } else if (lowerQuery.includes('小红书')) {
-      intent.platform = '小红书';
-    }
-
-    // 内容形式识别
-    if (lowerQuery.includes('视频') || lowerQuery.includes('路演')) {
-      intent.contentType = '视频';
-    } else if (lowerQuery.includes('长图') || lowerQuery.includes('海报')) {
-      intent.contentType = '长图';
-    } else if (lowerQuery.includes('推文') || lowerQuery.includes('文章')) {
-      intent.contentType = '推文';
-    }
-
-    // 主题识别
-    if (lowerQuery.includes('红利') || lowerQuery.includes('低波')) {
-      intent.theme = '红利低波';
-    } else if (lowerQuery.includes('etf') || lowerQuery.includes('新发')) {
-      intent.theme = 'ETF新发';
-    } else if (lowerQuery.includes('宽基') || lowerQuery.includes('指数')) {
-      intent.theme = '宽基/指数';
-    } else if (lowerQuery.includes('业绩') || lowerQuery.includes('榜单')) {
-      intent.theme = '业绩/榜单';
-    }
-
-    // 关键词提取
-    const keywords = queryText
-      .split(/[\s，,、]+/)
-      .filter((word) => word.length > 1)
-      .slice(0, 3);
-    intent.keywords = keywords;
-
-    return intent;
-  };
-
-  // 根据意图过滤素材
-  const filterByIntent = (intent) => {
-    let results = [...allMaterials];
-
-    // 关键词搜索
-    if (intent.keywords.length > 0) {
-      results = results.filter((item) => {
-        const searchText = `${item.source} ${item.summary} ${item.title} ${item.tags.join(' ')}`.toLowerCase();
-        return intent.keywords.some((keyword) => searchText.includes(keyword.toLowerCase()));
-      });
-    }
-
-    // 平台筛选
-    if (intent.platform) {
-      results = results.filter((item) => {
-        if (intent.platform === '公众号') {
-          return item.channel === '公众号';
-        }
-        return item.channel && item.channel.includes(intent.platform);
-      });
-    }
-
-    // 内容形式筛选
-    if (intent.contentType) {
-      const contentTypeMap = {
-        视频: '视频',
-        长图: '长图',
-        推文: '推文',
-      };
-      const mappedType = contentTypeMap[intent.contentType] || intent.contentType;
-      results = results.filter((item) => item.type === mappedType);
-    }
-
-    // 主题筛选
-    if (intent.theme) {
-      results = results.filter((item) => item.category === intent.theme);
-    }
-
-    return results;
-  };
-
   // 生成 AI 摘要
-  const generateAISummary = (intent, results) => {
+  const generateAISummary = (extractedKeywords, results) => {
     const parts = [];
     
     if (results.length === 0) {
@@ -128,16 +67,16 @@ const AIMaterialSearch = () => {
 
     parts.push(`我找到了 ${results.length} 条相关素材`);
 
-    if (intent.platform) {
-      parts.push(`来自 ${intent.platform}`);
-    }
-
-    if (intent.contentType) {
-      parts.push(`内容形式为 ${intent.contentType}`);
-    }
-
-    if (intent.theme) {
-      parts.push(`主题为 ${intent.theme}`);
+    const filters = [];
+    if (extractedKeywords.visualStyle) filters.push(`视觉风格：${extractedKeywords.visualStyle}`);
+    if (extractedKeywords.materialPositioning) filters.push(`物料定位：${extractedKeywords.materialPositioning}`);
+    if (extractedKeywords.materialType) filters.push(`物料类型：${extractedKeywords.materialType}`);
+    if (extractedKeywords.industryTheme) filters.push(`行业主题：${extractedKeywords.industryTheme}`);
+    if (extractedKeywords.pushTiming) filters.push(`推送时机：${extractedKeywords.pushTiming}`);
+    if (extractedKeywords.sellingPoint) filters.push(`核心卖点：${extractedKeywords.sellingPoint}`);
+    
+    if (filters.length > 0) {
+      parts.push(`筛选条件：${filters.join('、')}`);
     }
 
     parts.push('以下是精选推荐：');
@@ -146,20 +85,23 @@ const AIMaterialSearch = () => {
   };
 
   // 生成 AI 思考过程
-  const generateThinkingSteps = (intent) => {
+  const generateThinkingSteps = (extractedKeywords) => {
     const steps = ['分析查询意图...'];
     
-    if (intent.keywords.length > 0) {
-      steps.push(`提取关键词：${intent.keywords.join('、')}`);
+    const extracted = [];
+    if (extractedKeywords.visualStyle) extracted.push(`视觉风格：${extractedKeywords.visualStyle}`);
+    if (extractedKeywords.materialPositioning) extracted.push(`物料定位：${extractedKeywords.materialPositioning}`);
+    if (extractedKeywords.materialType) extracted.push(`物料类型：${extractedKeywords.materialType}`);
+    if (extractedKeywords.industryTheme) extracted.push(`行业主题：${extractedKeywords.industryTheme}`);
+    if (extractedKeywords.pushTiming) extracted.push(`推送时机：${extractedKeywords.pushTiming}`);
+    if (extractedKeywords.sellingPoint) extracted.push(`核心卖点：${extractedKeywords.sellingPoint}`);
+    
+    if (extracted.length > 0) {
+      steps.push(`提取关键词：${extracted.join('、')}`);
     }
     
-    const filters = [];
-    if (intent.platform) filters.push(intent.platform);
-    if (intent.contentType) filters.push(intent.contentType);
-    if (intent.theme) filters.push(intent.theme);
-    
-    if (filters.length > 0) {
-      steps.push(`筛选条件：${filters.join('、')}`);
+    if (extractedKeywords.keywords.length > 0) {
+      steps.push(`其他关键词：${extractedKeywords.keywords.join('、')}`);
     }
     
     steps.push('匹配相关素材...');
@@ -168,36 +110,63 @@ const AIMaterialSearch = () => {
   };
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || loading) return;
 
     setIsSearching(true);
     setAiThinking(true);
     setCurrentSearch(null);
+    setCurrentPage(1);
 
-    // 解析查询意图
-    const intent = parseQueryIntent(query);
-    const thinkingSteps = generateThinkingSteps(intent);
+    // 提取关键词
+    const extractedKeywords = extractKeywords(query);
+    const thinkingSteps = generateThinkingSteps(extractedKeywords);
 
     // 先显示思考过程
     setCurrentSearch({
       query,
-      intent,
+      extractedKeywords,
       results: [],
       summary: '',
       thinkingSteps,
     });
 
     // 模拟 AI 思考过程
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // 过滤结果
-    const results = filterByIntent(intent);
-    const summary = generateAISummary(intent, results);
+    // 搜索素材
+    let results = [];
+    if (labeledMaterials.length > 0) {
+      results = searchMaterials(labeledMaterials, extractedKeywords);
+      
+      // 调试信息
+      console.log('=== 搜索调试 ===');
+      console.log('查询:', query);
+      console.log('提取的关键词:', extractedKeywords);
+      console.log('总素材数:', labeledMaterials.length);
+      console.log('搜索结果数:', results.length);
+      if (labeledMaterials.length > 0) {
+        console.log('前3个素材的视觉风格:', labeledMaterials.slice(0, 3).map(m => ({
+          id: m.id,
+          title: m.title?.substring(0, 20),
+          视觉风格: m.视觉风格
+        })));
+      }
+      if (results.length > 0) {
+        console.log('前3个结果:', results.slice(0, 3).map(m => ({
+          id: m.id,
+          title: m.title?.substring(0, 20),
+          视觉风格: m.视觉风格
+        })));
+      }
+      console.log('==============');
+    }
+    
+    const summary = generateAISummary(extractedKeywords, results);
 
     setAiThinking(false);
     setCurrentSearch({
       query,
-      intent,
+      extractedKeywords,
       results,
       summary,
       thinkingSteps,
@@ -225,15 +194,30 @@ const AIMaterialSearch = () => {
 
   const handleMaterialClick = (material) => {
     setSelectedMaterial(material);
-    setIsModalOpen(true);
+    setShowDetail(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleBackToList = () => {
+    setShowDetail(false);
     setSelectedMaterial(null);
   };
+  
+  // 分页计算
+  const paginatedResults = useMemo(() => {
+    if (!currentSearch || !currentSearch.results) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return currentSearch.results.slice(startIndex, endIndex);
+  }, [currentSearch, currentPage, itemsPerPage]);
+  
+  const totalPages = currentSearch ? Math.ceil(currentSearch.results.length / itemsPerPage) : 0;
 
   const isInitialState = !currentSearch && searchHistory.length === 0;
+
+  // 如果显示详情页，直接渲染详情组件
+  if (showDetail && selectedMaterial) {
+    return <MaterialDetail material={selectedMaterial} onBack={handleBackToList} />;
+  }
 
   return (
     <div className="w-full min-h-screen bg-slate-50">
@@ -250,38 +234,69 @@ const AIMaterialSearch = () => {
 
           {/* 核心搜索框 */}
           <div className="w-full max-w-3xl mb-6">
-            <div className="relative bg-white rounded-2xl shadow-lg border border-gray-200 p-2 flex items-center">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="试试问：查找上周支付宝上热门的红利ETF海报..."
-                className="flex-1 px-4 py-4 text-base focus:outline-none bg-transparent"
-              />
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="高级筛选"
-                >
-                  <Filter className="w-5 h-5 text-gray-400" />
-                </button>
-                <button
-                  onClick={handleSearch}
-                  disabled={!query.trim() || isSearching}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow-md disabled:shadow-none"
-                >
-                  {isSearching ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      <span>搜索</span>
-                    </>
-                  )}
-                </button>
+            <div className="relative">
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-2 flex items-center">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onFocus={() => {
+                    setIsInputFocused(true);
+                    if (searchHistory.length > 0) {
+                      setShowHistoryDropdown(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    // 延迟隐藏，允许点击历史记录项
+                    setTimeout(() => {
+                      setIsInputFocused(false);
+                      setShowHistoryDropdown(false);
+                    }, 200);
+                  }}
+                  placeholder="试试问：查找上周支付宝上热门的红利ETF海报..."
+                  className="flex-1 px-4 py-4 text-base focus:outline-none bg-transparent"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSearch}
+                    disabled={!query.trim() || isSearching}
+                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-medium rounded-xl transition-all flex items-center gap-2 shadow-sm hover:shadow-md disabled:shadow-none"
+                  >
+                    {isSearching ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        <span>搜索</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
+              
+              {/* 搜索历史下拉框 */}
+              {showHistoryDropdown && searchHistory.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+                  <div className="py-2">
+                    {searchHistory.map((item, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setQuery(item.query);
+                          setShowHistoryDropdown(false);
+                          setIsInputFocused(false);
+                          setTimeout(() => handleSearch(), 100);
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      >
+                        <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 flex-1 truncate">{item.query}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -304,21 +319,53 @@ const AIMaterialSearch = () => {
           {/* 顶部搜索框（固定） */}
           <div className="sticky top-16 z-10 bg-white border-b border-gray-200 pb-4 mb-6 -mx-6 px-6">
             <div className="flex gap-3 items-center">
-              <div className="flex-1 relative bg-gray-50 rounded-xl border border-gray-200 p-2 flex items-center">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="继续提问或搜索..."
-                  className="flex-1 px-4 py-3 text-sm focus:outline-none bg-transparent"
-                />
-                <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  <Filter className="w-4 h-4 text-gray-400" />
-                </button>
+              <div className="flex-1 relative">
+                <div className="bg-gray-50 rounded-xl border border-gray-200 p-2 flex items-center">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    onFocus={() => {
+                      setIsInputFocused(true);
+                      if (searchHistory.length > 0) {
+                        setShowHistoryDropdown(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      // 延迟隐藏，允许点击历史记录项
+                      setTimeout(() => {
+                        setIsInputFocused(false);
+                        setShowHistoryDropdown(false);
+                      }, 200);
+                    }}
+                    placeholder="继续提问或搜索..."
+                    className="flex-1 px-4 py-3 text-sm focus:outline-none bg-transparent"
+                  />
+                </div>
+                
+                {/* 搜索历史下拉框 */}
+                {showHistoryDropdown && searchHistory.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+                    <div className="py-2">
+                      {searchHistory.map((item, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setQuery(item.query);
+                            setShowHistoryDropdown(false);
+                            setIsInputFocused(false);
+                            setTimeout(() => handleSearch(), 100);
+                          }}
+                          className="w-full px-4 py-2.5 text-left hover:bg-gray-50 transition-colors flex items-center gap-3"
+                        >
+                          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm text-gray-700 flex-1 truncate">{item.query}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 onClick={handleSearch}
@@ -334,40 +381,9 @@ const AIMaterialSearch = () => {
             </div>
           </div>
 
-          {/* 搜索历史 */}
-          {searchHistory.length > 0 && (
-            <div className="mb-6 space-y-4">
-              {searchHistory.map((item, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 border border-gray-200">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <Search className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-gray-900 mb-2">{item.query}</div>
-                      {/* 这里可以显示该查询的结果摘要 */}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* 当前搜索结果 */}
           {currentSearch && (
             <div className="space-y-6">
-              {/* 用户查询 */}
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <Search className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{currentSearch.query}</div>
-                  </div>
-                </div>
-              </div>
-
               {/* AI 思考指示器 */}
               {aiThinking && currentSearch && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -411,31 +427,52 @@ const AIMaterialSearch = () => {
                 </div>
               )}
 
-              {/* 智能网格 - 素材卡片 */}
+              {/* 素材网格 - 使用与全网竞品情报流相同的展示方式 */}
               {!aiThinking && currentSearch.results.length > 0 && (
                 <div>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-semibold text-gray-700">精选素材</h3>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      共找到 <span className="text-blue-600 font-semibold">{currentSearch.results.length}</span> 条相关素材
+                      {totalPages > 1 && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          · 第 <span className="text-blue-600 font-semibold">{currentPage}</span> / {totalPages} 页
+                        </span>
+                      )}
+                    </h3>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {currentSearch.results.slice(0, 12).map((item) => {
-                      const material = {
-                        ...item,
-                        imagePath: `${item.path}${item.imageId}.jpg`,
-                      };
-                      return (
-                        <MaterialCard
-                          key={item.id}
-                          imagePath={material.imagePath}
-                          source={item.source}
-                          time={item.time}
-                          material={material}
-                          onClick={handleMaterialClick}
-                          className="w-full"
-                        />
-                      );
-                    })}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {paginatedResults.map((material) => (
+                      <DeconstructedCard
+                        key={material.id}
+                        material={material}
+                        onClick={handleMaterialClick}
+                        activeTab="全部"
+                      />
+                    ))}
                   </div>
+                  
+                  {/* 分页控件 */}
+                  {totalPages > 1 && (
+                    <div className="mt-6 flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                      >
+                        上一页
+                      </button>
+                      <span className="px-4 py-2 text-sm text-gray-600">
+                        第 {currentPage} / {totalPages} 页
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                      >
+                        下一页
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -490,14 +527,6 @@ const AIMaterialSearch = () => {
         </div>
       )}
 
-      {/* 模态框 */}
-      {isModalOpen && selectedMaterial && (
-        <MaterialModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          material={selectedMaterial}
-        />
-      )}
     </div>
   );
 };

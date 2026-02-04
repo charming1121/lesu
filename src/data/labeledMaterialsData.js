@@ -1,5 +1,7 @@
 // 从产品标签.json加载并转换数据
 // 使用动态导入，因为JSON文件在assets目录
+import { generateExposureMetrics } from '../utils/exposureMetrics.js';
+
 let labeledData = [];
 
 // 动态加载JSON数据的函数
@@ -82,7 +84,8 @@ export const transformLabeledData = () => {
     // 在开发环境中，Vite会自动处理base路径
     const imagePath = `/lesu/assets/images/${item.文件名}`;
 
-    return {
+    // 构建基础素材对象
+    const baseMaterial = {
       id,
       // 基础信息
       title: item.标题,
@@ -108,8 +111,6 @@ export const transformLabeledData = () => {
       // 决策场景（用于Tab过滤）
       decisionScenario: getDecisionScenario(item.物料定位),
       // 兼容旧字段（如果没有则使用默认值）
-      heat: '0',
-      interaction: '0',
       category: item.行业主题 || '全行业',
       // 复用旧标签字段映射到新标签
       sceneTag: item.物料定位,
@@ -118,6 +119,18 @@ export const transformLabeledData = () => {
       reuseCount: 0,
       // 合规风险（暂时为空，后续可以根据需要添加）
       complianceRisks: [],
+    };
+
+    // 生成曝光指标
+    const exposureMetrics = generateExposureMetrics(baseMaterial);
+
+    return {
+      ...baseMaterial,
+      // 曝光指标
+      ...exposureMetrics,
+      // 兼容旧字段
+      heat: exposureMetrics.views,
+      interaction: exposureMetrics.likes,
     };
   });
 };

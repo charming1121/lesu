@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis } from 'recharts';
+import { getCompanyLogo, hasCompanyLogo } from '../utils/companyLogo';
 
 /**
  * 素材详情页 (Material Detail Page)
@@ -30,6 +31,15 @@ import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis } f
 const MaterialDetail = ({ material, onBack }) => {
   const [copied, setCopied] = useState(false);
   const [showOcrText, setShowOcrText] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  
+  // 获取公司logo路径
+  const companyLogo = material?.source ? getCompanyLogo(material.source) : null;
+  const showLogo = companyLogo && !logoError && hasCompanyLogo(material?.source);
+  
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
 
   // 页面加载时不需要滚动，因为已经在打开详情页前滚动到正确位置了
 
@@ -379,7 +389,16 @@ const MaterialDetail = ({ material, onBack }) => {
               </h1>
               <div className="flex items-center gap-3 text-sm text-gray-500">
                 <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600"></div>
+                  {showLogo ? (
+                    <img
+                      src={companyLogo}
+                      alt={detailData.source || '基金公司'}
+                      className="w-6 h-6 object-contain rounded-full bg-white p-0.5"
+                      onError={handleLogoError}
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600"></div>
+                  )}
                   <span className="font-medium">{detailData.source}</span>
                 </div>
                 <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded ${channelInfo.bg}`}>
@@ -490,7 +509,18 @@ const MaterialDetail = ({ material, onBack }) => {
                 {detailData.source && (
                   <div>
                     <div className="text-xs text-gray-500 mb-1">发布机构</div>
-                    <div className="text-sm text-gray-700">{detailData.source}</div>
+                    <div className="flex items-center gap-2">
+                      {showLogo ? (
+                        <img
+                          src={companyLogo}
+                          alt={detailData.source || '基金公司'}
+                          className="w-5 h-5 object-contain rounded-sm"
+                          onError={handleLogoError}
+                          style={{ maxHeight: '20px' }}
+                        />
+                      ) : null}
+                      <div className="text-sm text-gray-700">{detailData.source}</div>
+                    </div>
                   </div>
                 )}
 
