@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -10,6 +10,8 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts';
+import { X } from 'lucide-react';
+import { generateIndustryRadarData, generateAnomalies } from '../utils/industryRadarData';
 
 /**
  * 行业情报雷达 (Industry Radar)
@@ -19,9 +21,36 @@ import {
 const IndustryRadar = () => {
   // 机构卡片翻转状态
   const [institutionFlipped, setInstitutionFlipped] = useState(false);
+  const [sixDimTrends, setSixDimTrends] = useState([]);
+  const [anomalies, setAnomalies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  // 弹窗状态
+  const [showInstitutionModal, setShowInstitutionModal] = useState(false);
+  const [showTrackModal, setShowTrackModal] = useState(false);
 
-  // 六维趋势数据
-  const sixDimTrends = [
+  // 加载真实数据
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const { sixDimTrends: trends, materials } = await generateIndustryRadarData();
+        setSixDimTrends(trends);
+        const anomalyData = generateAnomalies(materials);
+        setAnomalies(anomalyData);
+      } catch (error) {
+        console.error('Failed to load industry radar data:', error);
+        // 使用默认数据
+        setSixDimTrends([]);
+        setAnomalies([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // 默认六维趋势数据（如果真实数据未加载）
+  const defaultSixDimTrends = [
     {
       id: 'time',
       label: '时间',
@@ -117,8 +146,8 @@ const IndustryRadar = () => {
     },
   ];
 
-  // 异动信号数据
-  const anomalies = [
+  // 默认异动信号数据（如果真实数据未加载）
+  const defaultAnomalies = [
     {
       id: 1,
       type: '数量暴增',
@@ -161,6 +190,20 @@ const IndustryRadar = () => {
     },
   ];
 
+  // 使用真实数据或默认数据
+  const displayTrends = sixDimTrends.length > 0 ? sixDimTrends : defaultSixDimTrends;
+  const displayAnomalies = anomalies.length > 0 ? anomalies : defaultAnomalies;
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">加载中...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
       {/* 标题区域 */}
@@ -178,7 +221,7 @@ const IndustryRadar = () => {
         <div className="bg-slate-50 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">六维趋势看板</h3>
           <div className="grid grid-cols-2 gap-4">
-            {sixDimTrends.map((dim) => (
+            {displayTrends.map((dim) => (
               <div
                 key={dim.id}
                 className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-shadow overflow-hidden"
@@ -214,7 +257,7 @@ const IndustryRadar = () => {
                 )}
 
                 {/* Bottom: 可视化区域 - 固定高度 h-16 */}
-                <div className="h-16">
+                <div className="h-16 overflow-hidden">
                   {dim.id === 'channel' ? (
                     // 渠道：单行堆叠进度条
                     <div className="space-y-2">
@@ -300,14 +343,14 @@ const IndustryRadar = () => {
                       })}
                     </div>
                   ) : dim.id === 'institution' ? (
-                    // 机构：头部竞争格局（支持翻转）
+                    // 机构：头部竞争格局（支持滚动和弹窗）
                     <div className="relative h-full">
                       {!institutionFlipped ? (
                         // 正面：Top 3 竞争格局 - 紧凑列表模式
-                        <div className="space-y-1.5">
-                          {dim.top3Ranking.map((item, idx) => {
-                            const maxCount = Math.max(...dim.top3Ranking.map((d) => d.count));
-                            const width = (item.count / maxCount) * 100;
+                        <div className="space-y-1.5 max-h-16 overflow-y-auto custom-scrollbar">
+                          {dim.top3Ranking && dim.top3Ranking.slice(0, 3).map((item, idx) => {
+                            const maxCount = Math.max(...dim.top3Ranking.slice(0, 3).map((d) => d.count));
+                            const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                             const colors = ['bg-blue-600', 'bg-blue-400', 'bg-blue-300'];
                             return (
                               <div key={idx} className="flex items-center text-xs mb-2">
@@ -322,20 +365,11 @@ const IndustryRadar = () => {
                               </div>
                             );
                           })}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setInstitutionFlipped(true);
-                            }}
-                            className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 underline"
-                          >
-                            查看完整榜单 →
-                          </button>
                         </div>
                       ) : (
-                        // 背面：Top 5 完整榜单
-                        <div className="space-y-1.5">
-                          {dim.top5Ranking.map((item, idx) => (
+                        // 背面：完整榜单（带滚动）
+                        <div className="space-y-1.5 max-h-16 overflow-y-auto custom-scrollbar">
+                          {dim.top5Ranking && dim.top5Ranking.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <span className="font-medium text-gray-700 w-16 truncate">{item.name}</span>
@@ -363,26 +397,39 @@ const IndustryRadar = () => {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+                      <div className="flex gap-2 mt-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInstitutionFlipped(!institutionFlipped);
+                          }}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 underline"
+                        >
+                          {institutionFlipped ? '← 返回' : '查看完整榜单 →'}
+                        </button>
+                        {dim.top5Ranking && dim.top5Ranking.length > 3 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setInstitutionFlipped(false);
+                              setShowInstitutionModal(true);
                             }}
-                            className="mt-2 text-[10px] text-blue-600 hover:text-blue-800 underline"
+                            className="text-[10px] text-blue-600 hover:text-blue-800 underline"
                           >
-                            ← 返回竞争格局
+                            展开详情
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ) : dim.id === 'track' ? (
-                    // 赛道：Top 3 榜单
-                    <div className="space-y-2">
-                      {dim.trackRanking.map((item, idx) => (
+                    // 赛道：Top 3 榜单（支持滚动和弹窗）
+                    <div className="space-y-2 max-h-16 overflow-y-auto custom-scrollbar">
+                      {dim.trackRanking && dim.trackRanking.slice(0, 3).map((item, idx) => (
                         <div key={idx}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-700 font-medium">{item.name}</span>
-                            <span className="text-xs font-bold text-gray-900">{item.value}%</span>
+                            <span className="text-xs text-gray-700 font-medium truncate flex-1">{item.name}</span>
+                            <span className="text-xs font-bold text-gray-900 ml-2">{item.value}%</span>
                           </div>
                           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                             <div
@@ -392,6 +439,17 @@ const IndustryRadar = () => {
                           </div>
                         </div>
                       ))}
+                      {dim.trackRanking && dim.trackRanking.length > 3 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowTrackModal(true);
+                          }}
+                          className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 underline w-full text-left"
+                        >
+                          查看全部赛道 ({dim.trackRanking.length}个) →
+                        </button>
+                      )}
                     </div>
                   ) : dim.id === 'time' ? (
                     // 时间：带峰值点的折线图
@@ -468,7 +526,7 @@ const IndustryRadar = () => {
         <div className="bg-slate-50 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">异动监测中心</h3>
           <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
-            {anomalies.map((anomaly) => (
+            {displayAnomalies.map((anomaly) => (
               <div
                 key={anomaly.id}
                 className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-all duration-200"
@@ -513,6 +571,119 @@ const IndustryRadar = () => {
           </div>
         </div>
       </div>
+
+      {/* 机构详情弹窗 */}
+      {showInstitutionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowInstitutionModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">机构排名详情</h3>
+              <button
+                onClick={() => setShowInstitutionModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+              {displayTrends.find(d => d.id === 'institution')?.top5Ranking ? (
+                <div className="space-y-3">
+                  {displayTrends.find(d => d.id === 'institution').top5Ranking.map((item, idx) => {
+                    const maxCount = Math.max(...displayTrends.find(d => d.id === 'institution').top5Ranking.map((d) => d.count));
+                    const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                    const colors = ['bg-blue-600', 'bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
+                    return (
+                      <div key={idx} className="bg-gray-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${colors[idx] || 'bg-gray-400'}`}>
+                              {item.rank}
+                            </span>
+                            <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                            <span
+                              className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                item.change === 'up'
+                                  ? 'bg-red-100 text-red-700'
+                                  : item.change === 'down'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
+                            >
+                              {item.change === 'up' && <span>↑{item.changeValue || ''}</span>}
+                              {item.change === 'down' && <span>↓{item.changeValue || ''}</span>}
+                              {item.change === 'stable' && <span>稳定</span>}
+                            </span>
+                            {item.note && (
+                              <span className="text-xs text-gray-500 italic">({item.note})</span>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold text-gray-900">{item.count}条</span>
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${colors[idx] || 'bg-gray-400'} rounded-full transition-all duration-300`}
+                            style={{ width: `${width}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">暂无数据</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 赛道详情弹窗 */}
+      {showTrackModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTrackModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">赛道分布详情</h3>
+              <button
+                onClick={() => setShowTrackModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+              {displayTrends.find(d => d.id === 'track')?.trackRanking ? (
+                <div className="space-y-3">
+                  {displayTrends.find(d => d.id === 'track').trackRanking.map((item, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${
+                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-400' : 'bg-blue-300'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">{item.value}%</span>
+                      </div>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${
+                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-400' : 'bg-blue-300'
+                          } rounded-full transition-all duration-300`}
+                          style={{ width: `${item.value}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">暂无数据</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

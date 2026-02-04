@@ -26,18 +26,6 @@ function App() {
         );
       case 'material':
         return <AIMaterialSearch />;
-      case 'compliance':
-        return (
-          <div className="text-gray-500 text-center py-20">
-            <p className="text-lg">合规检测功能开发中...</p>
-          </div>
-        );
-      case 'settings':
-        return (
-          <div className="text-gray-500 text-center py-20">
-            <p className="text-lg">账号设置功能开发中...</p>
-          </div>
-        );
       default:
         return (
           <>

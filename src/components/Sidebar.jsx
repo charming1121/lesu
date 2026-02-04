@@ -2,8 +2,6 @@ import React from 'react';
 import {
   Activity,
   Search,
-  ShieldCheck,
-  Settings,
 } from 'lucide-react';
 
 const Sidebar = ({ currentPage, onPageChange }) => {
@@ -13,13 +11,6 @@ const Sidebar = ({ currentPage, onPageChange }) => {
       items: [
         { id: 'monitoring', label: '全网监控', icon: Activity },
         { id: 'material', label: '素材检索', icon: Search },
-        { id: 'compliance', label: '合规检测', icon: ShieldCheck },
-      ],
-    },
-    {
-      category: '系统管理',
-      items: [
-        { id: 'settings', label: '账号设置', icon: Settings },
       ],
     },
   ];

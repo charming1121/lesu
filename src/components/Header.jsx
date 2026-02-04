@@ -5,8 +5,6 @@ const Header = ({ currentPage }) => {
     const pageTitles = {
       monitoring: '全网监控',
       material: '素材检索',
-      compliance: '合规检测',
-      settings: '账号设置',
     };
     return pageTitles[currentPage] || '首页';
   };

@@ -48,7 +48,8 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
 
   const channelInfo = getChannelIcon(material?.channel || '公众号');
   const ChannelIcon = channelInfo.icon;
-  const imagePath = `${material?.path || ''}${material?.imageId || 1}.jpg`;
+  // 优先使用 imagePath，如果没有则使用 path + imageId
+  const imagePath = material?.imagePath || `${material?.path || ''}${material?.imageId || 1}.jpg`;
   const isComplianceView = activeTab === '合规风险';
 
   return (
@@ -104,7 +105,10 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
           <img
             src={imagePath}
             alt={material?.title || material?.source}
-            className={`w-full h-full object-cover transition-transform duration-200 ${
+            className={`w-full h-full transition-transform duration-200 ${
+              // 长图使用 object-top 显示顶部内容，其他使用 object-cover
+              material?.type === '长图' ? 'object-top object-cover' : 'object-cover'
+            } ${
               isComplianceView ? '' : 'group-hover:scale-105'
             }`}
             onError={handleImageError}
@@ -137,57 +141,34 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
           </div>
         )}
 
-        {/* 智能标签栏 */}
-        {(material?.sceneTag || material?.emotionTag || material?.formatTag) && (
-          <div className="mb-2 space-y-1.5">
-            {/* 场景标 */}
-            {material?.sceneTag && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 w-12 flex-shrink-0">场景标：</span>
-                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-md font-medium">
-                  {material.sceneTag}
-                </span>
-              </div>
-            )}
+        {/* 核心标签展示 - 精简版 */}
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {/* 平台标签 - 固定显示 */}
+          <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-md font-medium">
+            蚂蚁财富
+          </span>
 
-            {/* 情绪标 */}
-            {material?.emotionTag && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 w-12 flex-shrink-0">情绪标：</span>
-                <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-md font-medium">
-                  {material.emotionTag}
-                </span>
-              </div>
-            )}
+          {/* 物料定位 - 核心标签 */}
+          {material?.物料定位 && (
+            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-md font-medium">
+              {material.物料定位}
+            </span>
+          )}
 
-            {/* 形式标 */}
-            {material?.formatTag && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 w-12 flex-shrink-0">形式标：</span>
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-md font-medium">
-                  {material.formatTag}
-                </span>
-              </div>
-            )}
+          {/* 产品核心卖点 - 核心标签（排除"无"） */}
+          {material?.产品核心卖点 && material.产品核心卖点 !== '无' && (
+            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-md font-medium">
+              {material.产品核心卖点}
+            </span>
+          )}
 
-            {/* 色板提取 */}
-            {material?.colorPalette && material.colorPalette.length > 0 && (
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500 w-12 flex-shrink-0">色板提取：</span>
-                <div className="flex items-center gap-1.5">
-                  {material.colorPalette.map((color, index) => (
-                    <div
-                      key={index}
-                      className="w-4 h-4 rounded-full border border-gray-200 shadow-sm"
-                      style={{ backgroundColor: color.value }}
-                      title={color.name}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          {/* 行业主题 - 核心标签 */}
+          {material?.industryTheme && (
+            <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs rounded-md font-medium">
+              {material.industryTheme}
+            </span>
+          )}
+        </div>
 
         {/* 底部信息 */}
         <div className="flex items-center justify-between pt-2 border-t border-gray-100">
