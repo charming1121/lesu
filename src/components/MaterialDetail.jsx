@@ -19,10 +19,12 @@ import {
   Share2,
   ChevronDown,
   ChevronUp,
+  Award,
 } from 'lucide-react';
 import { MessageCircle, CreditCard, Instagram } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis } from 'recharts';
 import { getCompanyLogo, hasCompanyLogo } from '../utils/companyLogo';
+import { getLabeledMaterials } from '../data/labeledMaterialsData';
 
 /**
  * 素材详情页 (Material Detail Page)
@@ -32,6 +34,7 @@ const MaterialDetail = ({ material, onBack }) => {
   const [copied, setCopied] = useState(false);
   const [showOcrText, setShowOcrText] = useState(false);
   const [logoError, setLogoError] = useState(false);
+  const [sameTrackRanking, setSameTrackRanking] = useState(null);
   
   // 获取公司logo路径
   const companyLogo = material?.source ? getCompanyLogo(material.source) : null;
@@ -40,6 +43,126 @@ const MaterialDetail = ({ material, onBack }) => {
   const handleLogoError = () => {
     setLogoError(true);
   };
+
+  // 计算同类赛道排名
+  useEffect(() => {
+    const calculateSameTrackRanking = async () => {
+      if (!material) return;
+      
+      try {
+        const allMaterials = await getLabeledMaterials();
+        
+        // 解析格式化数值的辅助函数
+        const parseFormattedNumber = (value) => {
+          if (!value) return 0;
+          if (typeof value === 'number') return value;
+          if (typeof value === 'string') {
+            const lower = value.toLowerCase();
+            const num = parseFloat(lower.replace(/[^0-9.]/g, ''));
+            if (lower.includes('w')) return num * 10000;
+            if (lower.includes('k')) return num * 1000;
+            return num || 0;
+          }
+          return 0;
+        };
+        
+        // 辅助函数：检查两个行业主题是否相似（匹配其中几个关键词即可）
+        const isSimilarIndustry = (theme1, theme2) => {
+          if (!theme1 || !theme2) return false;
+          if (theme1 === theme2) return true;
+          
+          // 将行业主题按/分割成关键词数组
+          const keywords1 = theme1.split('/').map(k => k.trim()).filter(k => k);
+          const keywords2 = theme2.split('/').map(k => k.trim()).filter(k => k);
+          
+          // 如果任一主题为空，返回false
+          if (keywords1.length === 0 || keywords2.length === 0) return false;
+          
+          // 计算匹配的关键词数量
+          const matchedKeywords = keywords1.filter(k1 => 
+            keywords2.some(k2 => k2.includes(k1) || k1.includes(k2))
+          );
+          
+          // 如果匹配的关键词数量 >= 最小匹配数（至少1个，或者原主题关键词的50%），则认为相似
+          const minMatchCount = Math.max(1, Math.ceil(keywords1.length * 0.5));
+          return matchedKeywords.length >= minMatchCount;
+        };
+        
+        // 辅助函数：检查物料类型是否相似
+        const isSimilarType = (type1, type2) => {
+          if (!type1 || !type2) return false;
+          if (type1 === type2) return true;
+          
+          // 对于相似的类型进行分组
+          const typeGroups = {
+            '图片类': ['海报', '封面图', '截屏', '长图'],
+            '视频类': ['视频'],
+            '文章类': ['文章', '长文']
+          };
+          
+          // 检查是否属于同一类型组
+          for (const [group, types] of Object.entries(typeGroups)) {
+            if (types.includes(type1) && types.includes(type2)) {
+              return true;
+            }
+          }
+          
+          return false;
+        };
+        
+        // 筛选同类素材：相似行业主题和相似物料类型
+        const sameTrackMaterials = allMaterials.filter(m => {
+          const similarIndustry = isSimilarIndustry(m.industryTheme, material.industryTheme);
+          const similarType = isSimilarType(m.type, material.type);
+          return similarIndustry && similarType && m.id !== material.id;
+        });
+        
+        // 如果同类素材太少，放宽条件：只按行业主题相似度筛选
+        let filteredMaterials = sameTrackMaterials;
+        if (sameTrackMaterials.length < 3) {
+          filteredMaterials = allMaterials.filter(m => {
+            const similarIndustry = isSimilarIndustry(m.industryTheme, material.industryTheme);
+            return similarIndustry && m.id !== material.id;
+          });
+        }
+        
+        // 计算传播力分数（综合阅读、转发、点赞）
+        const materialsWithScore = filteredMaterials.map(m => {
+          const views = m.viewsRaw || parseFormattedNumber(m.views) || 0;
+          const forwards = m.forwardsRaw || parseFormattedNumber(m.forwards) || 0;
+          const likes = m.likesRaw || parseFormattedNumber(m.likes) || 0;
+          const score = views * 0.5 + forwards * 100 * 0.3 + likes * 10 * 0.2;
+          return { ...m, score };
+        });
+        
+        // 当前素材的传播力分数
+        const currentViews = material.viewsRaw || parseFormattedNumber(material.views) || 0;
+        const currentForwards = material.forwardsRaw || parseFormattedNumber(material.forwards) || 0;
+        const currentLikes = material.likesRaw || parseFormattedNumber(material.likes) || 0;
+        const currentScore = currentViews * 0.5 + currentForwards * 100 * 0.3 + currentLikes * 10 * 0.2;
+        
+        // 排序并找到排名
+        materialsWithScore.sort((a, b) => b.score - a.score);
+        
+        // 找到当前素材的排名（插入当前素材后排序）
+        const allMaterialsWithCurrent = [...materialsWithScore, { ...material, score: currentScore }];
+        allMaterialsWithCurrent.sort((a, b) => b.score - a.score);
+        const rank = allMaterialsWithCurrent.findIndex(m => m.id === material.id) + 1;
+        const total = allMaterialsWithCurrent.length;
+        
+        setSameTrackRanking({
+          rank,
+          total,
+          trackName: material.industryTheme || '同类赛道',
+          materialType: material.type || '同类物料',
+        });
+      } catch (error) {
+        console.error('Failed to calculate same track ranking:', error);
+      }
+    };
+    
+    calculateSameTrackRanking();
+  }, [material]);
 
   // 页面加载时不需要滚动，因为已经在打开详情页前滚动到正确位置了
 
@@ -88,7 +211,6 @@ const MaterialDetail = ({ material, onBack }) => {
         views: material.heat || '0',
         likes: material.interaction || '0',
         reprintCount: material.reuseCount || 0,
-        platformDistribution: material.channel ? [{ platform: material.channel, count: 1 }] : [],
       },
     };
 
@@ -473,16 +595,41 @@ const MaterialDetail = ({ material, onBack }) => {
                 </div>
               </div>
 
-              {/* Platform Distribution */}
-              {detailData.stats?.platformDistribution && detailData.stats.platformDistribution.length > 0 && (
+              {/* 同类赛道排名 */}
+              {sameTrackRanking && (
                 <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="text-xs text-gray-500 mb-2">平台分布</div>
-                  <div className="flex flex-wrap gap-2">
-                    {detailData.stats.platformDistribution.map((item, idx) => (
-                      <span key={idx} className="px-2 py-0.5 bg-gray-50 text-gray-700 rounded text-xs">
-                        {item.platform} {item.count}
+                  <div className="flex items-center gap-2 mb-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    <div className="text-xs text-gray-500">同类赛道排名</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <span className={`text-lg font-bold ${
+                        sameTrackRanking.rank === 1 
+                          ? 'text-yellow-600' 
+                          : sameTrackRanking.rank <= 3 
+                          ? 'text-orange-600' 
+                          : 'text-gray-700'
+                      }`}>
+                        #{sameTrackRanking.rank}
                       </span>
-                    ))}
+                      <span className="text-xs text-gray-500">/ {sameTrackRanking.total}</span>
+                    </div>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          sameTrackRanking.rank === 1 
+                            ? 'bg-yellow-500' 
+                            : sameTrackRanking.rank <= 3 
+                            ? 'bg-orange-500' 
+                            : 'bg-blue-500'
+                        }`}
+                        style={{ width: `${((sameTrackRanking.total - sameTrackRanking.rank + 1) / sameTrackRanking.total) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {sameTrackRanking.trackName} · {sameTrackRanking.materialType}
                   </div>
                 </div>
               )}
@@ -641,10 +788,10 @@ const MaterialDetail = ({ material, onBack }) => {
                   <h3 className="font-semibold text-gray-900">核心卖点</h3>
                 </div>
 
-                <div>
-                  <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-md text-sm font-medium">
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-700 leading-relaxed">
                     {detailData.产品核心卖点}
-                  </span>
+                  </p>
                 </div>
               </div>
             )}

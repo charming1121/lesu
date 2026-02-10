@@ -114,7 +114,20 @@ const CompetitiveIntelligenceFeed = () => {
             if (material.产品核心卖点 === '无' || !material.产品核心卖点) {
               return false;
             }
-            return material.产品核心卖点 === activeTab;
+            // 现在卖点是文字描述，需要根据关键词匹配
+            const sellingPointText = material.产品核心卖点 || '';
+            const keywordMap = {
+              '巨额涨幅': ['涨幅', '涨超', '跑赢', '增长动能'],
+              '历史新高': ['新高', '创新高', '再创新高'],
+              '政策催化': ['政策', '催化', '定调', '规划', '政策红利'],
+              '估值底部': ['估值', '低位', '底部', '安全边际'],
+              '高股息': ['股息', '分红', '红利', '现金流'],
+              '周期拐点': ['拐点', '上行', '周期', '供需'],
+              '行业利好': ['行业', '基本面', '向好', '投资价值'],
+              '配置机遇': ['配置', '机遇', '布局', '投资机会']
+            };
+            const keywords = keywordMap[activeTab] || [];
+            return keywords.some(keyword => sellingPointText.includes(keyword));
           case '用户人群':
             return material.用户人群 === activeTab;
           default:

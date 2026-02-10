@@ -52,19 +52,22 @@ const IndustryRadar = () => {
   // 默认六维趋势数据（如果真实数据未加载）
   const defaultSixDimTrends = [
     {
-      id: 'time',
-      label: '时间',
-      hotword: '发布高峰时段',
-      value: '14:00-16:00',
+      id: 'effectiveness',
+      label: '传播效果',
+      hotword: '机构传播效果排名',
+      value: 'Top 3 占比 45%',
       trend: 'up',
-      sparklineData: [
-        { time: '08:00', value: 45 },
-        { time: '10:00', value: 82, peak: true },
-        { time: '12:00', value: 48 },
-        { time: '14:00', value: 61 },
-        { time: '14:30', value: 95, peak: true },
-        { time: '16:00', value: 75 },
-        { time: '18:00', value: 52 },
+      top3Ranking: [
+        { name: '易方达基金', count: 4200, rank: 1, change: 'stable' },
+        { name: '华夏基金', count: 3800, rank: 2, change: 'up' },
+        { name: '广发基金', count: 3200, rank: 3, change: 'down' },
+      ],
+      top5Ranking: [
+        { name: '易方达基金', count: 4200, rank: 1, change: 'stable', note: '传播效果最佳' },
+        { name: '华夏基金', count: 3800, rank: 2, change: 'up', changeValue: 1, note: '传播效果提升' },
+        { name: '广发基金', count: 3200, rank: 3, change: 'down', changeValue: 1 },
+        { name: '南方基金', count: 2800, rank: 4, change: 'stable' },
+        { name: '富国基金', count: 2500, rank: 5, change: 'up', changeValue: 2, note: '潜力机构' },
       ],
     },
     {
@@ -117,15 +120,17 @@ const IndustryRadar = () => {
       total: 100,
     },
     {
-      id: 'track',
-      label: '赛道',
-      hotword: '科技/红利/医药',
-      value: '红利低波',
+      id: 'hotspot',
+      label: '近期热点',
+      hotword: '申万一级行业',
+      value: '电力设备·政策催化',
       trend: 'up',
       trackRanking: [
-        { name: '红利低波', value: 55 },
-        { name: '科技成长', value: 30 },
-        { name: '创新药', value: 15 },
+        { name: '电力设备·政策催化', value: 28 },
+        { name: '电子·行业利好', value: 22 },
+        { name: '有色金属·周期拐点', value: 18 },
+        { name: '医药生物·行业利好', value: 16 },
+        { name: '计算机·巨额涨幅', value: 16 },
       ],
       // 总和为100%
       total: 100,
@@ -133,13 +138,12 @@ const IndustryRadar = () => {
     {
       id: 'material',
       label: '物料',
-      hotword: '视频/文章/海报',
-      value: '42%',
-      valueDesc: '视频物料占比持续增长',
+      hotword: '视频/图文占比',
+      value: '图文 75%',
       trend: 'up',
       materialData: [
-        { name: '视频', value: 42, color: '#6366F1' },
-        { name: '图文', value: 58, color: '#9CA3AF' },
+        { name: '视频', value: 25, color: '#6366F1' },
+        { name: '图文', value: 75, color: '#9CA3AF' },
       ],
       // 总和为100%
       total: 100,
@@ -150,43 +154,58 @@ const IndustryRadar = () => {
   const defaultAnomalies = [
     {
       id: 1,
-      type: '数量暴增',
+      type: '集体抱团',
+      category: '机构维度',
+      level: 'high',
       typeColor: 'bg-red-100 text-red-700 border-red-200',
       time: '14:23',
-      content: '监测到 14:00-15:00 时段内容量异常上升 180%，主要集中在新发ETF推广',
-      icon: '📈',
+      content: '监测到 **易方达、广发、华夏** 等5家头部机构今日同时发布**"电力设备·政策催化"**相关内容，市场营销共识已形成，建议跟进。',
+      icon: '🔴',
+      suggestion: '复用库内[电力设备]素材，跟进热点。',
     },
     {
       id: 2,
-      type: '集体抱团',
-      typeColor: 'bg-orange-100 text-orange-700 border-orange-200',
+      type: '重注推流',
+      category: '机构维度',
+      level: 'high',
+      typeColor: 'bg-red-100 text-red-700 border-red-200',
       time: '13:45',
-      content: '监测到 5 家机构同时加码"红利低波"赛道，相关推文数量激增',
-      icon: '🤝',
+      content: '监测到 **华夏基金** 近3日发布内容中，"**中证A500**" 相关素材占比高达 60%，判定为近期核心主推产品（Flagship Push）。',
+      icon: '🔴',
+      suggestion: '关注华夏基金的中证A500营销策略。',
     },
     {
       id: 3,
-      type: '撤回/下架',
-      typeColor: 'bg-purple-100 text-purple-700 border-purple-200',
+      type: '渠道策略',
+      category: '平台维度',
+      level: 'medium',
+      typeColor: 'bg-blue-100 text-blue-700 border-blue-200',
       time: '12:30',
-      content: '⚠️ 监测到 5 家机构同时下架"微盘股"相关推文，疑似政策避雷信号',
-      icon: '⚠️',
+      content: '监测到 **广发基金** 在 **蚂蚁财富** 平台集中投放"**医药生物**"相关内容（占比80%），存在明显的渠道客群分层策略。',
+      icon: '🔵',
+      suggestion: '分析蚂蚁财富平台的医药生物内容策略。',
     },
     {
       id: 4,
-      type: '数量暴增',
+      type: '细分爆发',
+      category: '产品维度',
+      level: 'high',
       typeColor: 'bg-red-100 text-red-700 border-red-200',
       time: '11:15',
-      content: '监测到"中证A500"关键词在1小时内提及量暴增 250%',
-      icon: '📈',
+      content: '**"电子"** 细分标签的提及率今日暴增150%，远超"有色金属"，成为今日最热子赛道。',
+      icon: '🚀',
+      suggestion: '关注电子赛道机会。',
     },
     {
       id: 5,
-      type: '集体抱团',
-      typeColor: 'bg-orange-100 text-orange-700 border-orange-200',
+      type: '新品扎堆',
+      category: '产品维度',
+      level: 'high',
+      typeColor: 'bg-green-100 text-green-700 border-green-200',
       time: '10:00',
-      content: '监测到 8 家机构同时发布"定投策略"相关内容，形成营销热点',
-      icon: '🤝',
+      content: '监测到今日有 8条 关于 **"中证A500 ETF"** 的新发募集预热内容，5家机构启动预热投放，新品发行竞争进入白热化阶段。',
+      icon: '🆕',
+      suggestion: '关注中证A500 ETF新品竞争态势。',
     },
   ];
 
@@ -245,16 +264,28 @@ const IndustryRadar = () => {
                 </div>
 
                 {/* Middle: 核心数据 */}
-                {dim.id !== 'material' && (
-                  <div className="mb-3">
+                <div className="mb-3">
+                  {dim.id === 'effectiveness' || dim.id === 'institution' ? (
+                    // 传播效果和机构：Top 3 大字体，占比小字体
+                    <div className="mb-0.5">
+                      {dim.value.includes('占比') ? (
+                        <>
+                          <span className="text-lg font-bold text-gray-800">{dim.value.split('占比')[0]}</span>
+                          <span className="text-xs font-normal text-gray-600 ml-1">占比{dim.value.split('占比')[1]}</span>
+                        </>
+                      ) : (
+                        <span className="text-lg font-bold text-gray-800">{dim.value}</span>
+                      )}
+                    </div>
+                  ) : (
                     <div className="text-lg font-bold text-gray-800 mb-0.5">
                       {dim.value}
                     </div>
-                    {dim.valueDesc && (
-                      <div className="text-xs text-gray-500">{dim.valueDesc}</div>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {dim.valueDesc && (
+                    <div className="text-xs text-gray-500">{dim.valueDesc}</div>
+                  )}
+                </div>
 
                 {/* Bottom: 可视化区域 - 固定高度 h-16 */}
                 <div className="h-16 overflow-hidden">
@@ -289,37 +320,33 @@ const IndustryRadar = () => {
                       </div>
                     </div>
                   ) : dim.id === 'material' ? (
-                    // 物料：左右布局
-                    <div className="flex items-center h-full">
-                      {/* 左侧：文字信息 (60%) */}
-                      <div className="flex-1 pr-2">
-                        <div className="text-lg font-bold text-indigo-600 mb-0.5">
-                          {dim.value}
-                        </div>
-                        <div className="text-xs text-gray-500 leading-tight">
-                          {dim.valueDesc}
-                        </div>
+                    // 物料：显示所有类型占比（类似渠道的显示方式）
+                    <div className="space-y-2">
+                      {/* 堆叠进度条 */}
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden flex">
+                        {dim.materialData.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="h-full transition-all duration-300"
+                            style={{
+                              width: `${item.value}%`,
+                              backgroundColor: item.color,
+                            }}
+                          ></div>
+                        ))}
                       </div>
-                      {/* 右侧：环形图 (40%) */}
-                      <div className="w-16 h-16 flex-shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={dim.materialData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={12}
-                              outerRadius={20}
-                              dataKey="value"
-                              startAngle={90}
-                              endAngle={-270}
-                            >
-                              {dim.materialData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
+                      {/* 图例 */}
+                      <div className="flex items-center gap-3 text-[10px] flex-wrap">
+                        {dim.materialData.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: item.color }}
+                            ></div>
+                            <span className="text-gray-600">{item.name}</span>
+                            <span className="font-medium text-gray-900">{item.value}%</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ) : dim.id === 'product' ? (
@@ -342,7 +369,7 @@ const IndustryRadar = () => {
                         );
                       })}
                     </div>
-                  ) : dim.id === 'institution' ? (
+                  ) : dim.id === 'institution' || dim.id === 'effectiveness' ? (
                     // 机构：头部竞争格局（支持滚动和弹窗）
                     <div className="relative h-full">
                       {!institutionFlipped ? (
@@ -361,7 +388,7 @@ const IndustryRadar = () => {
                                     style={{ width: `${width}%` }}
                                   ></div>
                                 </div>
-                                <span className="w-12 text-right font-bold text-gray-900">{item.count}条</span>
+                                <span className="w-16 text-right font-bold text-gray-900 text-xs">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
                               </div>
                             );
                           })}
@@ -373,7 +400,7 @@ const IndustryRadar = () => {
                             <div key={idx} className="flex items-center justify-between text-xs">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                                 <span className="font-medium text-gray-700 w-16 truncate">{item.name}</span>
-                                <span className="text-gray-500">{item.count}条</span>
+                                <span className="text-gray-500">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
                                 <span
                                   className={`text-[10px] font-medium ${
                                     item.change === 'up'
@@ -422,24 +449,26 @@ const IndustryRadar = () => {
                         )}
                       </div>
                     </div>
-                  ) : dim.id === 'track' ? (
-                    // 赛道：Top 3 榜单（支持滚动和弹窗）
-                    <div className="space-y-2 max-h-16 overflow-y-auto custom-scrollbar">
-                      {dim.trackRanking && dim.trackRanking.slice(0, 3).map((item, idx) => (
-                        <div key={idx}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs text-gray-700 font-medium truncate flex-1">{item.name}</span>
-                            <span className="text-xs font-bold text-gray-900 ml-2">{item.value}%</span>
+                  ) : dim.id === 'track' || dim.id === 'hotspot' ? (
+                    // 近期热点：Top 5 榜单（支持滚动和弹窗）
+                    <div className="space-y-1.5 max-h-16 overflow-y-auto custom-scrollbar">
+                      {dim.trackRanking && dim.trackRanking.slice(0, dim.id === 'hotspot' ? 5 : 3).map((item, idx) => (
+                        <div key={idx} className="mb-1">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[10px] text-gray-700 font-medium truncate flex-1 leading-tight">{item.name}</span>
+                            <span className="text-[10px] font-bold text-gray-900 ml-1 flex-shrink-0">{item.value}%</span>
                           </div>
-                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                              className={`h-full rounded-full transition-all duration-300 ${
+                                idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-blue-400' : 'bg-blue-300'
+                              }`}
                               style={{ width: `${item.value}%` }}
                             ></div>
                           </div>
                         </div>
                       ))}
-                      {dim.trackRanking && dim.trackRanking.length > 3 && (
+                      {dim.trackRanking && dim.trackRanking.length > (dim.id === 'hotspot' ? 5 : 3) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -447,51 +476,9 @@ const IndustryRadar = () => {
                           }}
                           className="mt-1 text-[10px] text-blue-600 hover:text-blue-800 underline w-full text-left"
                         >
-                          查看全部赛道 ({dim.trackRanking.length}个) →
+                          查看全部热点 ({dim.trackRanking.length}个) →
                         </button>
                       )}
-                    </div>
-                  ) : dim.id === 'time' ? (
-                    // 时间：带峰值点的折线图
-                    <div className="h-full relative">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={dim.sparklineData} margin={{ top: 2, right: 0, left: 0, bottom: 2 }}>
-                          <defs>
-                            <linearGradient id={`sparkline-${dim.id}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <Area
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#3B82F6"
-                            strokeWidth={1.5}
-                            fill={`url(#sparkline-${dim.id})`}
-                            dot={false}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                      {/* 峰值点标注 */}
-                      {dim.sparklineData
-                        .map((d, idx) => {
-                          if (d.peak) {
-                            const position = ((idx + 0.5) / dim.sparklineData.length) * 100;
-                            return (
-                              <div
-                                key={idx}
-                                className="absolute -top-3 text-[8px] text-blue-600 font-medium whitespace-nowrap"
-                                style={{
-                                  left: `${position}%`,
-                                  transform: 'translateX(-50%)',
-                                }}
-                              >
-                                {d.time}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })}
                     </div>
                   ) : dim.sparklineData ? (
                     // 其他维度：普通折线图
@@ -526,48 +513,71 @@ const IndustryRadar = () => {
         <div className="bg-slate-50 rounded-lg p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">异动监测中心</h3>
           <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
-            {displayAnomalies.map((anomaly) => (
-              <div
-                key={anomaly.id}
-                className="bg-white rounded-lg p-3 border border-gray-100 hover:shadow-sm transition-all duration-200"
-              >
-                <div className="flex items-start gap-2">
-                  {/* 图标 */}
-                  <span className="text-lg flex-shrink-0">{anomaly.icon}</span>
-                  
-                  {/* 内容 */}
-                  <div className="flex-1 min-w-0">
-                    {/* 类型标签和时间 */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded border ${anomaly.typeColor}`}
-                      >
-                        {anomaly.type}
-                      </span>
-                      <span className="text-xs text-gray-400 font-mono">{anomaly.time}</span>
-                    </div>
+            {displayAnomalies.map((anomaly) => {
+              // 根据等级确定边框颜色
+              const levelBorderColor = 
+                anomaly.level === 'high' ? 'border-red-300' :
+                anomaly.level === 'medium' ? 'border-yellow-300' :
+                'border-blue-300';
+              
+              // 根据等级确定左侧指示条颜色
+              const levelBarColor =
+                anomaly.level === 'high' ? 'bg-red-500' :
+                anomaly.level === 'medium' ? 'bg-yellow-500' :
+                'bg-blue-500';
+              
+              return (
+                <div
+                  key={anomaly.id}
+                  className={`bg-white rounded-lg p-3 border-l-4 ${levelBorderColor} border-r border-t border-b border-gray-100 hover:shadow-md transition-all duration-200`}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* 左侧等级指示条 */}
+                    <div className={`w-1 h-full ${levelBarColor} rounded-full flex-shrink-0`}></div>
                     
-                    {/* 消息内容 */}
-                    <p className="text-sm text-gray-700 leading-relaxed">
-                      {anomaly.content}
-                      {anomaly.type === '撤回/下架' && (
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            // TODO: 跳转到失效内容库
-                            console.log('查看失效内容库');
-                          }}
-                          className="ml-2 text-blue-600 hover:text-blue-800 underline text-xs"
+                    {/* 内容区域 */}
+                    <div className="flex-1 min-w-0">
+                      {/* 头部：图标 + 类型标签 + 类别 + 时间 */}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="text-base flex-shrink-0">{anomaly.icon}</span>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded border ${anomaly.typeColor}`}
                         >
-                          查看失效内容库 &gt;
-                        </a>
+                          {anomaly.type}
+                        </span>
+                        {anomaly.category && (
+                          <span className="text-xs text-gray-500 px-1.5 py-0.5 bg-gray-50 rounded">
+                            {anomaly.category}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 font-mono ml-auto">{anomaly.time}</span>
+                      </div>
+                      
+                      {/* 消息内容 */}
+                      <p className="text-sm text-gray-700 leading-relaxed mb-2">
+                        {anomaly.content.split('**').map((part, idx) => 
+                          idx % 2 === 1 ? (
+                            <strong key={idx} className="font-semibold text-gray-900">{part}</strong>
+                          ) : (
+                            <span key={idx}>{part}</span>
+                          )
+                        )}
+                      </p>
+                      
+                      {/* 建议（如果有） */}
+                      {anomaly.suggestion && (
+                        <div className="mt-2 pt-2 border-t border-gray-100">
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-xs text-blue-600 font-medium flex-shrink-0">建议：</span>
+                            <span className="text-xs text-gray-600">{anomaly.suggestion}</span>
+                          </div>
+                        </div>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -577,7 +587,7 @@ const IndustryRadar = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowInstitutionModal(false)}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">机构排名详情</h3>
+              <h3 className="text-lg font-semibold text-gray-900">机构传播效果排名详情</h3>
               <button
                 onClick={() => setShowInstitutionModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -586,10 +596,11 @@ const IndustryRadar = () => {
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
-              {displayTrends.find(d => d.id === 'institution')?.top5Ranking ? (
+              {(displayTrends.find(d => d.id === 'effectiveness') || displayTrends.find(d => d.id === 'institution'))?.top5Ranking ? (
                 <div className="space-y-3">
-                  {displayTrends.find(d => d.id === 'institution').top5Ranking.map((item, idx) => {
-                    const maxCount = Math.max(...displayTrends.find(d => d.id === 'institution').top5Ranking.map((d) => d.count));
+                  {(displayTrends.find(d => d.id === 'effectiveness') || displayTrends.find(d => d.id === 'institution')).top5Ranking.map((item, idx) => {
+                    const currentDim = displayTrends.find(d => d.id === 'effectiveness') || displayTrends.find(d => d.id === 'institution');
+                    const maxCount = Math.max(...currentDim.top5Ranking.map((d) => d.count));
                     const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                     const colors = ['bg-blue-600', 'bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
                     return (
@@ -617,7 +628,12 @@ const IndustryRadar = () => {
                               <span className="text-xs text-gray-500 italic">({item.note})</span>
                             )}
                           </div>
-                          <span className="text-sm font-bold text-gray-900">{item.count}条</span>
+                          <div className="flex flex-col items-end">
+                            <span className="text-sm font-bold text-gray-900">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
+                            {item.avgForwards !== undefined && (
+                              <span className="text-xs text-gray-500">转发 {item.avgForwards >= 1000 ? (item.avgForwards / 1000).toFixed(1) + 'k' : item.avgForwards}</span>
+                            )}
+                          </div>
                         </div>
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div
@@ -642,7 +658,7 @@ const IndustryRadar = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowTrackModal(false)}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">赛道分布详情</h3>
+              <h3 className="text-lg font-semibold text-gray-900">近期热点分布详情</h3>
               <button
                 onClick={() => setShowTrackModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -651,25 +667,25 @@ const IndustryRadar = () => {
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
-              {displayTrends.find(d => d.id === 'track')?.trackRanking ? (
+              {displayTrends.find(d => d.id === 'hotspot' || d.id === 'track')?.trackRanking ? (
                 <div className="space-y-3">
-                  {displayTrends.find(d => d.id === 'track').trackRanking.map((item, idx) => (
+                  {(displayTrends.find(d => d.id === 'hotspot') || displayTrends.find(d => d.id === 'track')).trackRanking.map((item, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white ${
-                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-400' : 'bg-blue-300'
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0 ${
+                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-blue-400' : 'bg-blue-300'
                           }`}>
                             {idx + 1}
                           </span>
-                          <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                          <span className="text-sm font-medium text-gray-900 truncate">{item.name}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-900">{item.value}%</span>
+                        <span className="text-sm font-bold text-gray-900 flex-shrink-0 ml-2">{item.value}%</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className={`h-full ${
-                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-400' : 'bg-blue-300'
+                            idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-blue-500' : idx === 2 ? 'bg-blue-400' : 'bg-blue-300'
                           } rounded-full transition-all duration-300`}
                           style={{ width: `${item.value}%` }}
                         ></div>

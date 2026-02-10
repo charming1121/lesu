@@ -167,9 +167,11 @@ const DeconstructedCard = ({ material, onClick, activeTab = '全部' }) => {
 
           {/* 产品核心卖点 - 核心标签（排除"无"） */}
           {material?.产品核心卖点 && material.产品核心卖点 !== '无' && (
-            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-md font-medium">
-              {material.产品核心卖点}
-            </span>
+            <div className="w-full mt-2 p-2 bg-green-50 rounded-md">
+              <p className="text-xs text-green-700 leading-relaxed line-clamp-2">
+                {material.产品核心卖点}
+              </p>
+            </div>
           )}
 
           {/* 行业主题 - 核心标签 */}
