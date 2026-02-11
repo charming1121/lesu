@@ -235,11 +235,11 @@ const IndustryRadar = () => {
       </div>
 
       {/* 内容区域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-[6.5fr_3.5fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[6.5fr_3.5fr] gap-6 items-stretch">
         {/* 左侧：六维趋势看板 */}
-        <div className="bg-slate-50 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">六维趋势看板</h3>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="bg-slate-50 rounded-lg p-4 flex flex-col h-full">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex-shrink-0">六维趋势看板</h3>
+          <div className="grid grid-cols-2 gap-4 flex-1">
             {displayTrends.map((dim) => (
               <div
                 key={dim.id}
@@ -379,6 +379,8 @@ const IndustryRadar = () => {
                             const maxCount = Math.max(...dim.top3Ranking.slice(0, 3).map((d) => d.count));
                             const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                             const colors = ['bg-blue-600', 'bg-blue-400', 'bg-blue-300'];
+                            // 机构排名显示素材数量，传播效果排名显示阅读量
+                            const unit = dim.id === 'institution' ? '条' : '阅读';
                             return (
                               <div key={idx} className="flex items-center text-xs mb-2">
                                 <span className="w-20 truncate text-gray-700 font-medium">{item.name}</span>
@@ -388,7 +390,7 @@ const IndustryRadar = () => {
                                     style={{ width: `${width}%` }}
                                   ></div>
                                 </div>
-                                <span className="w-16 text-right font-bold text-gray-900 text-xs">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
+                                <span className="w-16 text-right font-bold text-gray-900 text-xs">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} {unit}</span>
                               </div>
                             );
                           })}
@@ -396,34 +398,38 @@ const IndustryRadar = () => {
                       ) : (
                         // 背面：完整榜单（带滚动）
                         <div className="space-y-1.5 max-h-16 overflow-y-auto custom-scrollbar">
-                          {dim.top5Ranking && dim.top5Ranking.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between text-xs">
-                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <span className="font-medium text-gray-700 w-16 truncate">{item.name}</span>
-                                <span className="text-gray-500">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
-                                <span
-                                  className={`text-[10px] font-medium ${
-                                    item.change === 'up'
-                                      ? 'text-red-600'
-                                      : item.change === 'down'
-                                      ? 'text-green-600'
-                                      : 'text-gray-400'
-                                  }`}
-                                >
-                                  {item.change === 'up' && (
-                                    <span>↑{item.changeValue || ''}</span>
+                          {dim.top5Ranking && dim.top5Ranking.map((item, idx) => {
+                            // 机构排名显示素材数量，传播效果排名显示阅读量
+                            const unit = dim.id === 'institution' ? '条' : '阅读';
+                            return (
+                              <div key={idx} className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <span className="font-medium text-gray-700 w-16 truncate">{item.name}</span>
+                                  <span className="text-gray-500">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} {unit}</span>
+                                  <span
+                                    className={`text-[10px] font-medium ${
+                                      item.change === 'up'
+                                        ? 'text-red-600'
+                                        : item.change === 'down'
+                                        ? 'text-green-600'
+                                        : 'text-gray-400'
+                                    }`}
+                                  >
+                                    {item.change === 'up' && (
+                                      <span>↑{item.changeValue || ''}</span>
+                                    )}
+                                    {item.change === 'down' && (
+                                      <span>↓{item.changeValue || ''}</span>
+                                    )}
+                                    {item.change === 'stable' && <span>-</span>}
+                                  </span>
+                                  {item.note && (
+                                    <span className="text-[10px] text-gray-400 italic">({item.note})</span>
                                   )}
-                                  {item.change === 'down' && (
-                                    <span>↓{item.changeValue || ''}</span>
-                                  )}
-                                  {item.change === 'stable' && <span>-</span>}
-                                </span>
-                                {item.note && (
-                                  <span className="text-[10px] text-gray-400 italic">({item.note})</span>
-                                )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                       <div className="flex gap-2 mt-1">
@@ -510,9 +516,9 @@ const IndustryRadar = () => {
         </div>
 
         {/* 右侧：异动监测中心 */}
-        <div className="bg-slate-50 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">异动监测中心</h3>
-          <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-hide pr-1">
+        <div className="bg-slate-50 rounded-lg p-4 flex flex-col h-full">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 flex-shrink-0">异动监测中心</h3>
+          <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide pr-1 min-h-0">
             {displayAnomalies.map((anomaly) => {
               // 根据等级确定边框颜色
               const levelBorderColor = 
@@ -587,7 +593,11 @@ const IndustryRadar = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowInstitutionModal(false)}>
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">机构传播效果排名详情</h3>
+              {(() => {
+                const currentDim = displayTrends.find(d => d.id === 'effectiveness') || displayTrends.find(d => d.id === 'institution');
+                const title = currentDim?.id === 'institution' ? '机构活跃度排名详情' : '机构传播效果排名详情';
+                return <h3 className="text-lg font-semibold text-gray-900">{title}</h3>;
+              })()}
               <button
                 onClick={() => setShowInstitutionModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -603,6 +613,8 @@ const IndustryRadar = () => {
                     const maxCount = Math.max(...currentDim.top5Ranking.map((d) => d.count));
                     const width = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
                     const colors = ['bg-blue-600', 'bg-blue-500', 'bg-blue-400', 'bg-blue-300', 'bg-blue-200'];
+                    // 机构排名显示素材数量，传播效果排名显示阅读量
+                    const unit = currentDim.id === 'institution' ? '条' : '阅读';
                     return (
                       <div key={idx} className="bg-gray-50 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-2">
@@ -629,7 +641,7 @@ const IndustryRadar = () => {
                             )}
                           </div>
                           <div className="flex flex-col items-end">
-                            <span className="text-sm font-bold text-gray-900">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} 阅读</span>
+                            <span className="text-sm font-bold text-gray-900">{item.count >= 1000 ? (item.count / 1000).toFixed(1) + 'k' : item.count} {unit}</span>
                             {item.avgForwards !== undefined && (
                               <span className="text-xs text-gray-500">转发 {item.avgForwards >= 1000 ? (item.avgForwards / 1000).toFixed(1) + 'k' : item.avgForwards}</span>
                             )}
