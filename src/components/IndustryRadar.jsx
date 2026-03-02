@@ -270,10 +270,10 @@ const IndustryRadar = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 模块一：机构营销兵力部署 (Institutional Deployment Monitor) */}
+            {/* 模块一：机构营销产品部署 (Institutional Deployment Monitor) */}
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="mb-3">
-                <h4 className="text-sm font-semibold text-gray-900">机构营销兵力部署</h4>
+                <h4 className="text-sm font-semibold text-gray-900">机构营销产品部署</h4>
                 <p className="mt-1 text-xs text-gray-500">
                   一眼看清头部竞品每天在推哪只具体产品、处于什么阶段、投入多少兵力。
                 </p>
@@ -389,10 +389,10 @@ const IndustryRadar = () => {
               })()}
             </div>
 
-            {/* 模块二：全市场概念资金流向 (Market Concept Flow) */}
+            {/* 模块二：全市场赛道营销流向 (Market Concept Flow) */}
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="mb-3">
-                <h4 className="text-sm font-semibold text-gray-900">全市场概念资金流向</h4>
+                <h4 className="text-sm font-semibold text-gray-900">全市场赛道营销流向</h4>
                 <p className="mt-1 text-xs text-gray-500">
                   高颗粒度板块热力图 · 鼠标悬浮至板块显示主力推手详情。
                 </p>
@@ -750,7 +750,7 @@ const IndustryRadar = () => {
                     {[
                       { name: '蚂蚁财富', icon: '🐜', iconBg: 'bg-blue-50', rising: { label: '短视频', share: 25, trend: [8, 9, 10, 11, 12, 14, 15, 16, 18, 20, 22, 25] }, falling: { label: '长文', share: -15, trend: [35, 33, 30, 28, 26, 24, 22, 20, 19, 18, 17, 15] }, hotTopic: 'A500' },
                       { name: '微信公众号', icon: '💬', iconBg: 'bg-green-50', rising: { label: '图文+视频', share: 12, trend: [5, 5, 6, 6, 7, 8, 9, 10, 11, 11, 12, 12] }, falling: { label: '纯文字', share: -8, trend: [25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 15] }, hotTopic: '红利低波' },
-                      { name: '抖音', icon: '🎬', iconBg: 'bg-purple-50', rising: { label: '真人口播', share: 32, trend: [10, 12, 14, 16, 18, 20, 24, 28, 30, 31, 32, 32] }, falling: { label: 'MG动画', share: -18, trend: [22, 20, 18, 16, 14, 12, 10, 8, 6, 5, 4, 3] }, hotTopic: '半导体' },
+                      { name: '小红书', icon: '📕', iconBg: 'bg-red-50', rising: { label: '真人口播', share: 32, trend: [10, 12, 14, 16, 18, 20, 24, 28, 30, 31, 32, 32] }, falling: { label: 'MG动画', share: -18, trend: [22, 20, 18, 16, 14, 12, 10, 8, 6, 5, 4, 3] }, hotTopic: '半导体' },
                     ].map((platform) => (
                       <div key={platform.name} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
@@ -791,7 +791,7 @@ const IndustryRadar = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {[
                       { modelName: '蚂蚁财富 · 短债杀手', tags: ['蚂蚁财富', '长图', '理财存钱', '极简风'], supply: 18, demand: 85, roiBadge: '高转化', roiClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', reason: '理财存钱需求旺盛，竞品多用复杂长文，极简长图是蓝海。', action: '使用模板' },
-                      { modelName: '抖音 · 半导体情绪流', tags: ['抖音', '真人口播', '半导体', '快节奏'], supply: 25, demand: 78, roiBadge: '高流量', roiClass: 'bg-amber-50 text-amber-700 border-amber-200', reason: '半导体话题情绪高、传播快，真人口播完播率优于MG动画。', action: '查看脚本' },
+                      { modelName: '小红书 · 半导体情绪流', tags: ['小红书', '真人口播', '半导体', '快节奏'], supply: 25, demand: 78, roiBadge: '高流量', roiClass: 'bg-amber-50 text-amber-700 border-amber-200', reason: '半导体话题情绪高、传播快，真人口播完播率优于MG动画。', action: '查看脚本' },
                       { modelName: '微信 · 红利低波深度', tags: ['微信公众号', '图文+视频', '红利低波', '稳健叙事'], supply: 22, demand: 72, roiBadge: '高留存', roiClass: 'bg-sky-50 text-sky-700 border-sky-200', reason: '高净值用户偏好深度内容，图文+视频组合提升信任感。', action: '使用模板' },
                     ].map((model, idx) => (
                       <div key={idx} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
