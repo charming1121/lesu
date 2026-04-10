@@ -49,6 +49,16 @@ const IndustryRadar = () => {
   const hoverLeaveRef = useRef(null);
   // 异动监测中心：维度筛选，默认机构战术异动
   const [anomalyDimFilter, setAnomalyDimFilter] = useState('机构战术异动');
+  // 市场赛道热力图 → 战略时间轴：左侧选中赛道，默认 AI
+  const [activeMarketSector, setActiveMarketSector] = useState('ai');
+  // 热力图维度筛选：赛道 / 行业 / 主题 / 指数
+  const [heatmapDimension, setHeatmapDimension] = useState('赛道');
+  // 素材结构曲线展示模式：百分比 / 绝对值
+  const [stackMode, setStackMode] = useState('percent'); // 'percent' | 'absolute'
+  // 渠道素材分布：按机构 or 按平台
+  const [materialDistMode, setMaterialDistMode] = useState('platform'); // 'platform' | 'institution'
+  // 渠道曝光堆叠曲线：百分比 / 绝对值
+  const [channelStackMode, setChannelStackMode] = useState('percent'); // 'percent' | 'absolute'
 
   // 加载真实数据
   useEffect(() => {
@@ -270,470 +280,1023 @@ const IndustryRadar = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 模块一：机构营销产品部署 (Institutional Deployment Monitor) */}
-            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <div className="mb-3">
-                <h4 className="text-sm font-semibold text-gray-900">机构营销产品部署</h4>
-                <p className="mt-1 text-xs text-gray-500">
-                  一眼看清头部竞品每天在推哪只具体产品、处于什么阶段、投入多少兵力。
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <span className="text-[11px] text-gray-500">筛选：</span>
-                {[
-                  { key: 'all', label: '全部' },
-                  { key: 'new', label: '新发产品' },
-                  { key: '持营', label: '持营产品' },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setDeployFilter(opt.key)}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors ${
-                      deployFilter === opt.key
-                        ? 'bg-slate-800 text-white border-slate-800'
-                        : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-              {(() => {
-                const timeTicks = ['T-7', 'T-6', 'T-5', 'T-4', 'T-3', 'T-2', 'T-1', 'T+0', 'T+3'];
-                const stageConfig = {
-                  预热期: { color: 'bg-blue-500', border: 'border-blue-600', label: '🔵 预热期' },
-                  爆发期: { color: 'bg-red-500', border: 'border-red-600', label: '🔴 爆发期' },
-                  持盈期: { color: 'bg-emerald-500', border: 'border-emerald-600', label: '🟢 持盈期' },
-                  防御期: { color: 'bg-slate-500', border: 'border-slate-600', label: '🛡️ 防御期' },
-                };
-                const ganttBars = [
-                  { institution: '易方达', product: '易方达中证A500ETF', dayStart: 2, dayEnd: 6, stage: '爆发期', intensity: 12, isNew: true, tags: '低费率促销 + 龙头效应', channels: '蚂蚁(60%)+天天(40%)' },
-                  { institution: '易方达', product: '易方达科技龙头C', dayStart: 0, dayEnd: 3, stage: '持盈期', intensity: 2, isNew: false, tags: '业绩展示', channels: '蚂蚁(80%)' },
-                  { institution: '广发', product: '广发中证A500ETF', dayStart: 1, dayEnd: 7, stage: '爆发期', intensity: 15, isNew: true, tags: '费率战 + 规模优势', channels: '蚂蚁(55%)+微信(45%)' },
-                  { institution: '广发', product: '广发半导体精选C', dayStart: 4, dayEnd: 7, stage: '持盈期', intensity: 3, isNew: false, tags: '净值曲线', channels: '天天(70%)' },
-                  { institution: '华夏', product: '华夏红利低波ETF', dayStart: 0, dayEnd: 7, stage: '持盈期', intensity: 5, isNew: false, tags: '分红战报 + 抗跌', channels: '蚂蚁(50%)+微信(50%)' },
-                  { institution: '华夏', product: '华夏中证机器人ETF', dayStart: 5, dayEnd: 8, stage: '预热期', intensity: 4, isNew: true, tags: '获批通告', channels: '渠道预通知' },
-                  { institution: '富国', product: '富国短债A', dayStart: 0, dayEnd: 7, stage: '防御期', intensity: 2, isNew: false, tags: '稳健替代', channels: '微信(60%)' },
-                  { institution: '南方', product: '南方中证TMT', dayStart: 3, dayEnd: 7, stage: '持盈期', intensity: 4, isNew: false, tags: '科技主题', channels: '蚂蚁(40%)+抖音(60%)' },
-                ];
-                const filteredBars = deployFilter === 'all' ? ganttBars : deployFilter === 'new' ? ganttBars.filter((b) => b.isNew) : ganttBars.filter((b) => !b.isNew);
-                const institutions = [...new Set(filteredBars.map((b) => b.institution))];
-                const totalDays = timeTicks.length;
-                const dayWidth = 28;
-                return (
-                  <div className="rounded-lg border border-slate-200 overflow-hidden">
-                    <div className="overflow-x-auto overflow-y-auto max-h-[320px]">
-                      <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
-                        <div className="w-32 flex-shrink-0 border-r border-slate-200 py-1.5 text-[10px] font-semibold text-gray-500 text-center">机构 · 产品</div>
-                        <div className="flex" style={{ minWidth: totalDays * dayWidth }}>
-                          {timeTicks.map((t) => (
-                            <div key={t} className="flex-shrink-0 py-1.5 text-[10px] text-gray-500 text-center border-r border-slate-100" style={{ width: dayWidth }}>{t}</div>
-                          ))}
-                        </div>
-                      </div>
-                      {institutions.map((inst) => {
-                        const bars = filteredBars.filter((b) => b.institution === inst);
-                        return (
-                          <div key={inst} className="border-b border-slate-100 last:border-b-0">
-                            {bars.map((bar, idx) => {
-                              const stage = stageConfig[bar.stage] || stageConfig.持盈期;
-                              const intensityNorm = Math.min(1, bar.intensity / 15);
-                              const opacityClass = intensityNorm > 0.6 ? 'opacity-100' : intensityNorm > 0.3 ? 'opacity-80' : 'opacity-60';
-                              return (
-                                <div key={`${bar.product}-${idx}`} className="flex items-stretch relative h-7 group">
-                                  {idx === 0 && (
-                                    <div className="w-32 flex-shrink-0 border-r border-slate-200 bg-slate-50/80 flex items-center px-2 text-[10px] font-medium text-gray-700" style={{ height: bars.length * 28 }}>{inst}</div>
-                                  )}
-                                  {idx > 0 && <div className="w-32 flex-shrink-0 border-r border-slate-200 bg-slate-50/50" />}
-                                  <div className="flex-1 relative" style={{ minWidth: totalDays * dayWidth }}>
-                                    <div
-                                      className={`absolute top-1 h-5 rounded ${stage.color} border ${stage.border} ${opacityClass} hover:ring-2 hover:ring-offset-1 hover:ring-slate-400 cursor-pointer transition-all flex items-center justify-center`}
-                                      style={{ left: `${(bar.dayStart / (totalDays - 1)) * 100}%`, width: `${Math.max(8, ((bar.dayEnd - bar.dayStart + 1) / (totalDays - 1)) * 100)}%`, minWidth: 48 }}
-                                      title={`${bar.product} | ${bar.stage} | 当日物料约 ${bar.intensity} 条`}
-                                    >
-                                      <span className="text-[9px] font-semibold text-white truncate px-1">{bar.product.replace(inst, '').replace(/^[·\s]+/, '') || bar.product.slice(0, 8)}</span>
-                                    </div>
-                                    <div className="absolute left-0 right-0 top-full z-20 hidden group-hover:block mt-0.5">
-                                      <div className="bg-slate-800 text-white text-[10px] rounded-lg px-2 py-1.5 shadow-lg border border-slate-600 max-w-xs">
-                                        <div className="font-semibold text-white">{bar.product}</div>
-                                        <div className="text-slate-300 mt-0.5">标签：{bar.tags}</div>
-                                        <div className="text-slate-400">渠道：{bar.channels}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                            {bars.length === 0 && (
-                              <div className="flex h-7 items-center">
-                                <div className="w-32 flex-shrink-0 border-r border-slate-200 bg-slate-50 px-2 text-[10px] text-gray-500">{inst}</div>
-                                <div className="flex-1 text-[10px] text-gray-400 italic">暂无数据</div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-wrap gap-2 px-2 py-1.5 bg-slate-50 border-t border-slate-200 text-[10px]">
-                      {Object.entries(stageConfig).map(([k, v]) => (
-                        <span key={k} className="flex items-center gap-1">
-                          <span className={`w-3 h-3 rounded ${v.color} border ${v.border}`} />
-                          <span className="text-gray-600">{v.label}</span>
-                        </span>
-                      ))}
-                      <span className="text-gray-400 ml-2">条深浅 = 当日物料数量（深=饱和式，浅=日常维护）</span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* 模块二：全市场赛道营销流向 (Market Concept Flow) */}
-            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-              <div className="mb-3">
-                <h4 className="text-sm font-semibold text-gray-900">全市场赛道营销流向</h4>
-                <p className="mt-1 text-xs text-gray-500">
-                  高颗粒度板块热力图 · 鼠标悬浮至板块显示主力推手详情。
-                </p>
-              </div>
-              <div className="relative rounded-xl border border-slate-100 bg-slate-50/30 p-3">
-                <div className="text-[11px] text-gray-500 pb-2 border-b border-slate-100 mb-2">
-                  板块热力图 · 面积=物料总量，色相=板块，色深=体量
+            {/* 模块一+二：赛道热力图 + 素材结构曲线 + 竞品战略时间轴（第二行） */}
+            <div className="md:col-span-2 flex flex-col gap-4 bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 overflow-hidden">
+              {/* 第一行：左热力图 + 右素材结构百分比堆叠曲线 */}
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Left: 市场赛道热力图（全局筛选） */}
+                <div className="w-full md:w-[30%] flex-shrink-0 flex flex-col md:border-r border-slate-100 md:pr-4">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-[11px] text-gray-500">维度：</span>
+                  {['赛道', '行业', '主题', '指数'].map((dim) => (
+                    <button
+                      key={dim}
+                      type="button"
+                      onClick={() => setHeatmapDimension(dim)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${
+                        heatmapDimension === dim ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-gray-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {dim}
+                    </button>
+                  ))}
                 </div>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="text-[11px] text-gray-500 mb-1">点击块选择 · 面积=体量 色深=热度</div>
+                <div className="h-[280px] min-h-[280px]">
+                  <ResponsiveContainer width="100%" height={280}>
                     <Treemap
-                      data={[
-                        {
-                          name: 'TMT',
-                          value: 520,
-                          trend: 0.35,
-                          category: 'tmt',
-                          children: [
-                            { name: 'CPO光模块', value: 128, trend: 0.52, id: 'cpo', category: 'tmt' },
-                            { name: '人形机器人', value: 95, trend: 0.48, id: 'robot', category: 'tmt' },
-                            { name: 'AI应用', value: 142, trend: 0.41, id: 'ai_app', category: 'tmt' },
-                            { name: '信创', value: 88, trend: 0.12, id: 'xinchuang', category: 'tmt' },
-                          ],
-                        },
-                        {
-                          name: '制造',
-                          value: 380,
-                          trend: 0.22,
-                          category: 'manufacturing',
-                          children: [
-                            { name: '固态电池', value: 98, trend: 0.38, id: 'solid_battery', category: 'manufacturing' },
-                            { name: '低空经济', value: 112, trend: 0.55, id: 'low_air', category: 'manufacturing' },
-                            { name: '轨交设备', value: 76, trend: 0.18, id: 'rail', category: 'manufacturing' },
-                          ],
-                        },
-                        {
-                          name: '策略',
-                          value: 410,
-                          trend: 0.15,
-                          category: 'strategy',
-                          children: [
-                            { name: '红利低波', value: 165, trend: 0.28, id: 'dividend', category: 'strategy' },
-                            { name: '高股息', value: 132, trend: 0.22, id: 'high_div', category: 'strategy' },
-                            { name: '微盘股', value: 88, trend: -0.05, id: 'micro', category: 'strategy' },
-                          ],
-                        },
-                      ]}
+                      isAnimationActive={false}
+                      data={(() => {
+                        const byDimension = {
+                          // 投资方向（截图列表示例）：使用 value 近似对应产品数量
+                          赛道: {
+                            name: 'sectors',
+                            children: [
+                              { name: '科技行业', value: 260, growth: 0.45, id: 'ai', category: 'tmt' },
+                              { name: '有色金属', value: 79, growth: 0.22, id: 'nonferrous', category: 'manufacturing' },
+                              { name: '石油石化', value: 14, growth: 0.08, id: 'petro', category: 'manufacturing' },
+                              { name: '稀土永磁', value: 79, growth: 0.38, id: 'rare_earth', category: 'strategy' },
+                              { name: '油气', value: 14, growth: 0.12, id: 'oil', category: 'manufacturing' },
+                              { name: '黄金', value: 54, growth: 0.25, id: 'gold', category: 'strategy' },
+                              { name: '化工', value: 19, growth: 0.18, id: 'chemical', category: 'manufacturing' },
+                              { name: '稀有金属', value: 12, growth: 0.20, id: 'rare_metal', category: 'manufacturing' },
+                              { name: '纳斯达克', value: 55, growth: 0.30, id: 'nasdaq', category: 'strategy' },
+                              { name: '恒生科技', value: 74, growth: 0.35, id: 'hstech', category: 'tmt' },
+                            ],
+                          },
+                          // 行业维度（截图三行业列表）
+                          行业: {
+                            name: 'industry',
+                            children: [
+                              { name: '传媒', value: 260, growth: 0.22, id: 'media', category: 'tmt' },
+                              { name: '电力设备', value: 310, growth: 0.30, id: 'power', category: 'manufacturing' },
+                              { name: '电子', value: 420, growth: 0.38, id: 'electronics', category: 'tmt' },
+                              { name: '房地产', value: 180, growth: -0.05, id: 'real_estate', category: 'strategy' },
+                              { name: '纺织服饰', value: 120, growth: 0.10, id: 'textile', category: 'manufacturing' },
+                              { name: '非银金融', value: 260, growth: 0.18, id: 'nonbank', category: 'strategy' },
+                              { name: '公用事业', value: 140, growth: 0.08, id: 'utility', category: 'manufacturing' },
+                              { name: '国防军工', value: 200, growth: 0.28, id: 'defense', category: 'manufacturing' },
+                              { name: '钢铁', value: 90, growth: 0.12, id: 'steel', category: 'manufacturing' },
+                              { name: '环保', value: 110, growth: 0.20, id: 'green', category: 'manufacturing' },
+                              { name: '交通运输', value: 150, growth: 0.15, id: 'transport', category: 'strategy' },
+                              { name: '基础化工', value: 130, growth: 0.18, id: 'basic_chem', category: 'manufacturing' },
+                            ],
+                          },
+                          // 主题基金（截图二主题列表）
+                          主题: {
+                            name: 'theme',
+                            children: [
+                              { name: '融资融券', value: 232, growth: 0.20, id: 'margin', category: 'strategy' },
+                              { name: '2025中报预增', value: 175, growth: 0.32, id: 'mid_report', category: 'strategy' },
+                              { name: '芯片概念', value: 445, growth: 0.40, id: 'chip', category: 'tmt' },
+                              { name: '新能源汽车', value: 339, growth: 0.35, id: 'ev', category: 'manufacturing' },
+                              { name: '5G', value: 216, growth: 0.28, id: '5g', category: 'tmt' },
+                              { name: '国企改革', value: 362, growth: 0.22, id: 'soe_reform', category: 'strategy' },
+                              { name: '数据中心', value: 275, growth: 0.30, id: 'datacenter', category: 'tmt' },
+                              { name: '华为概念', value: 283, growth: 0.33, id: 'huawei', category: 'tmt' },
+                              { name: '西部大开发', value: 47, growth: 0.18, id: 'west_dev', category: 'strategy' },
+                              { name: '机器人概念', value: 270, growth: 0.36, id: 'robot_theme', category: 'tmt' },
+                            ],
+                          },
+                          指数: {
+                            name: 'index',
+                            children: [
+                              { name: '华证龙头红利50指数', value: 180, growth: 0.32, id: 'dividend', category: 'strategy' },
+                              { name: '国证龙头家电指数', value: 210, growth: 0.28, id: 'home_appliance', category: 'manufacturing' },
+                              { name: '中证高端装备指数', value: 190, growth: 0.30, id: 'high_equip', category: 'manufacturing' },
+                              { name: '中证新能源汽车产业指数', value: 220, growth: 0.35, id: 'ev_index', category: 'tmt' },
+                              { name: '中证高股息优选指数', value: 200, growth: 0.26, id: 'high_div_index', category: 'strategy' },
+                              { name: '中证全指集成电路全收益指数', value: 240, growth: 0.40, id: 'chip_index', category: 'tmt' },
+                              { name: '中证长江环保主题指数', value: 160, growth: 0.24, id: 'env_index', category: 'manufacturing' },
+                              { name: '中证金融科技主题指数', value: 230, growth: 0.38, id: 'fintech_index', category: 'tmt' },
+                              { name: '国证香港金融科技指数', value: 150, growth: 0.22, id: 'hk_fintech', category: 'strategy' },
+                              { name: '道琼斯美国精选石油和燃气生产者指数', value: 140, growth: 0.18, id: 'us_oilgas', category: 'manufacturing' },
+                            ],
+                          },
+                        };
+                        return [byDimension[heatmapDimension] || byDimension.赛道];
+                      })()}
                       dataKey="value"
-                      aspectRatio={4 / 3}
+                      aspectRatio={3 / 4}
                       stroke="none"
                       content={(props) => {
-                        const { x, y, width, height, name, value, trend, id, category } = props;
-                        if (width < 36 || height < 28) return null;
+                        const { x, y, width, height, name, value, growth, id, category } = props;
+                        if (width < 30 || height < 24) return null;
                         const isLeaf = typeof id === 'string';
-                        const cat = category ?? (name === 'TMT' ? 'tmt' : name === '制造' ? 'manufacturing' : name === '策略' ? 'strategy' : (['cpo','robot','ai_app','xinchuang'].includes(id) ? 'tmt' : ['solid_battery','low_air','rail'].includes(id) ? 'manufacturing' : 'strategy'));
-                        const v = value != null ? Number(value) : 0;
-                        const tier = v >= 140 ? 4 : v >= 110 ? 3 : v >= 90 ? 2 : 1;
+                        if (!isLeaf) return null;
+                        const cat = category || 'tmt';
                         const palettes = {
                           tmt: ['#dbeafe', '#93c5fd', '#60a5fa', '#3b82f6'],
                           manufacturing: ['#d1fae5', '#6ee7b7', '#34d399', '#10b981'],
                           strategy: ['#ede9fe', '#c4b5fd', '#a78bfa', '#8b5cf6'],
                         };
-                        const parentFills = { tmt: '#93c5fd', manufacturing: '#6ee7b7', strategy: '#c4b5fd' };
-                        const fill = isLeaf ? (palettes[cat] || palettes.tmt)[Math.min(tier - 1, 3)] : (parentFills[cat] || parentFills.tmt);
-                        const trendUp = trend != null && trend >= 0;
-                        const trendPct = trend != null ? (trend * 100).toFixed(0) : '';
-                        const pad = 14;
-                        const isCompact = isLeaf && height < 44;
-                        const handleMouseEnter = (e) => {
-                          if (isLeaf && id) {
-                            if (hoverLeaveRef.current) clearTimeout(hoverLeaveRef.current);
-                            setHoveredConceptId(id);
-                            setTooltipPos({ x: e.clientX, y: e.clientY });
-                          }
-                        };
-                        const handleMouseLeave = () => {
-                          hoverLeaveRef.current = setTimeout(() => setHoveredConceptId(null), 100);
-                        };
+                        const v = value != null ? Number(value) : 0;
+                        const tier = v >= 300 ? 4 : v >= 200 ? 3 : v >= 120 ? 2 : 1;
+                        const fill = (palettes[cat] || palettes.tmt)[Math.min(tier - 1, 3)];
+                        const pct =
+                          typeof growth === 'number'
+                            ? `${growth >= 0 ? '+' : ''}${(growth * 100).toFixed(1)}%`
+                            : null;
+                        const selected = activeMarketSector === id;
                         return (
-                          <g className="treemap-block" style={{ cursor: isLeaf ? 'pointer' : 'default' }}>
-                            <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} />
-                            {isLeaf ? (
-                              <>
-                                {isCompact ? (
-                                  <>
-                                    <text x={x + width / 2} y={y + height / 3} fill="#000000" fontSize={13} fontWeight={600} textAnchor="middle">
-                                      {name}
-                                    </text>
-                                    {trendPct !== '' && (
-                                      <text x={x + width / 2} y={y + height - 8} fill={trendUp ? '#dc2626' : '#16a34a'} fontSize={10} fontWeight={600} textAnchor="middle">
-                                        {trendUp ? '+' : ''}{trendPct}%
-                                      </text>
-                                    )}
-                                  </>
-                                ) : (
-                                  <>
-                                    <text x={x + width / 2} y={y + height / 3} fill="#000000" fontSize={16} fontWeight={600} textAnchor="middle">
-                                      {name}
-                                    </text>
-                                    <text x={x + width / 2} y={y + height - pad - 4} textAnchor="middle" fontSize={12} fontWeight={500}>
-                                      <tspan fill="#334155">{value} 篇</tspan>
-                                      {trendPct !== '' && (
-                                        <tspan fill={trendUp ? '#dc2626' : '#16a34a'} fontWeight={600}>  {trendUp ? '+' : ''}{trendPct}% {trendUp ? '↑' : '↓'}</tspan>
-                                      )}
-                                    </text>
-                                  </>
-                                )}
-                              </>
-                            ) : (
-                              <text
-                                x={x + width / 2}
-                                y={y + height / 3}
-                                fill="#000000"
-                                fontSize={17}
-                                fontWeight={600}
-                                textAnchor="middle"
-                              >
-                                {name}
-                              </text>
-                            )}
-                            {isLeaf && (
-                              <rect
-                                x={x + 1}
-                                y={y + 1}
-                                width={width - 2}
-                                height={height - 2}
-                                fill="transparent"
-                                style={{ pointerEvents: 'all' }}
-                                onMouseEnter={handleMouseEnter}
-                                onMouseLeave={handleMouseLeave}
-                              />
-                            )}
+                          <g style={{ cursor: 'pointer' }} onClick={() => setActiveMarketSector(id)}>
+                            <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} stroke={selected ? '#1e40af' : 'transparent'} strokeWidth={selected ? 3 : 0} rx={4} />
+                            <text
+                              x={x + width / 2}
+                              y={y + height / 2 - 4}
+                              fill="#0f172a"
+                              fontSize={12}
+                              fontWeight={600}
+                              textAnchor="middle"
+                            >
+                              {name}
+                            </text>
+                            <text
+                              x={x + width / 2}
+                              y={y + height / 2 + 10}
+                              fontSize={11}
+                              fontWeight={500}
+                              textAnchor="middle"
+                            >
+                              <tspan fill="#334155">{value} 篇</tspan>
+                              {pct && (
+                                <tspan
+                                  fill={growth >= 0 ? '#b91c1c' : '#15803d'}
+                                  fontWeight={600}
+                                >
+                                  {'  '}
+                                  {pct}
+                                </tspan>
+                              )}
+                            </text>
                           </g>
                         );
                       }}
                     />
                   </ResponsiveContainer>
                 </div>
-                {/* 悬浮窗：主力推手详情（Portal 到 body，避免父级 transform 导致定位错误） */}
-                {hoveredConceptId && typeof document !== 'undefined' && createPortal(
-                  <div
-                    className="fixed z-[9999] min-w-[220px] max-w-[300px] rounded-lg border border-slate-200 bg-white p-3 shadow-xl"
-                    style={(() => {
-                      const W = 300, H = 220, offset = 12;
-                      const w = window.innerWidth;
-                      const h = window.innerHeight;
-                      let left = tooltipPos.x + offset;
-                      let top = tooltipPos.y + offset;
-                      if (left + W > w) left = tooltipPos.x - W - offset;
-                      if (top + H > h) top = tooltipPos.y - H - offset;
-                      left = Math.max(8, Math.min(left, w - W - 8));
-                      top = Math.max(8, Math.min(top, h - H - 8));
-                      return { left, top };
-                    })()}
-                    onMouseEnter={() => { if (hoverLeaveRef.current) clearTimeout(hoverLeaveRef.current); }}
-                    onMouseLeave={() => setHoveredConceptId(null)}
-                  >
-                    {(() => {
-                      const listByConcept = {
-                        cpo: [
-                          { org: '招商基金', product: '招商中证云计算与大数据ETF', sell: '短期业绩亮眼 (近1月+15%)', sample: '#' },
-                        ],
-                        robot: [
-                          { org: '华夏基金', product: '华夏中证机器人ETF', sell: '获批主题预热', sample: '#' },
-                        ],
-                        ai_app: [
-                          { org: '易方达基金', product: '易方达人工智能主题', sell: 'AI应用落地叙事', sample: '#' },
-                        ],
-                        dividend: [
-                          { org: '华夏基金', product: '华夏红利低波ETF', sell: '分红战报 + 抗跌', sample: '#' },
-                          { org: '南方基金', product: '南方红利低波', sell: '高股息配置', sample: '#' },
-                        ],
-                        low_air: [
-                          { org: '广发基金', product: '广发中证低空经济', sell: '政策+订单双驱动', sample: '#' },
-                        ],
-                      };
-                      const list = listByConcept[hoveredConceptId] || [];
-                      const conceptName = { cpo: 'CPO光模块', robot: '人形机器人', ai_app: 'AI应用', dividend: '红利低波', low_air: '低空经济', high_div: '高股息', micro: '微盘股', solid_battery: '固态电池', rail: '轨交设备', xinchuang: '信创' }[hoveredConceptId] || hoveredConceptId;
-                      return (
-                        <>
-                          <div className="text-xs font-semibold text-slate-800 mb-2 border-b border-slate-100 pb-1.5">主力推手 · {conceptName}</div>
-                          <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {list.length > 0 ? list.map((row, i) => (
-                              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/50 p-2 text-[11px]">
-                                <div className="font-semibold text-gray-900">推手机构：{row.org}</div>
-                                <div className="text-gray-700 mt-0.5">关联产品：{row.product}</div>
-                                <div className="text-slate-600 mt-0.5">核心卖点：{row.sell}</div>
-                                <a href={row.sample} className="inline-block mt-1 text-blue-600 hover:underline">物料样本 →</a>
+                </div>
+
+                {/* Right: 素材结构曲线（时间 X 维度，支持百分比/绝对值） */}
+                <div className="w-full md:w-[70%] flex-shrink-0 flex flex-col">
+                  {(() => {
+                    // 使用热力图的静态 value 作为基准数据
+                    const baseMap = {
+                      赛道: [
+                        { name: '科技行业', value: 260 },
+                        { name: '有色金属', value: 79 },
+                        { name: '石油石化', value: 14 },
+                        { name: '稀土永磁', value: 79 },
+                        { name: '油气', value: 14 },
+                        { name: '黄金', value: 54 },
+                        { name: '化工', value: 19 },
+                        { name: '稀有金属', value: 12 },
+                        { name: '纳斯达克', value: 55 },
+                        { name: '恒生科技', value: 74 },
+                      ],
+                      行业: [
+                        { name: '传媒', value: 260 },
+                        { name: '电力设备', value: 310 },
+                        { name: '电子', value: 420 },
+                        { name: '房地产', value: 180 },
+                        { name: '纺织服饰', value: 120 },
+                        { name: '非银金融', value: 260 },
+                        { name: '公用事业', value: 140 },
+                        { name: '国防军工', value: 200 },
+                        { name: '钢铁', value: 90 },
+                        { name: '环保', value: 110 },
+                        { name: '交通运输', value: 150 },
+                        { name: '基础化工', value: 130 },
+                      ],
+                      主题: [
+                        { name: '融资融券', value: 232 },
+                        { name: '2025中报预增', value: 175 },
+                        { name: '芯片概念', value: 445 },
+                        { name: '新能源汽车', value: 339 },
+                        { name: '5G', value: 216 },
+                        { name: '国企改革', value: 362 },
+                        { name: '数据中心', value: 275 },
+                        { name: '华为概念', value: 283 },
+                        { name: '西部大开发', value: 47 },
+                        { name: '机器人概念', value: 270 },
+                      ],
+                      指数: [
+                        { name: '华证龙头红利50指数', value: 180 },
+                        { name: '国证龙头家电指数', value: 210 },
+                        { name: '中证高端装备指数', value: 190 },
+                        { name: '中证新能源汽车产业指数', value: 220 },
+                        { name: '中证高股息优选指数', value: 200 },
+                        { name: '中证全指集成电路全收益指数', value: 240 },
+                        { name: '中证长江环保主题指数', value: 160 },
+                        { name: '中证金融科技主题指数', value: 230 },
+                        { name: '国证香港金融科技指数', value: 150 },
+                        { name: '道琼斯美国精选石油和燃气生产者指数', value: 140 },
+                      ],
+                    };
+                    const baseChildren = baseMap[heatmapDimension] || baseMap.赛道;
+                    const series = baseChildren.map((c) => c.name);
+                    const days = ['T-14', 'T-12', 'T-10', 'T-8', 'T-6', 'T-4', 'T-2', 'T-0'];
+                    const multipliers = [0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.1, 1.15];
+                    const data = days.map((day, idx) => {
+                      const m = multipliers[idx] ?? 1;
+                      const row = { day };
+                      baseChildren.forEach((child) => {
+                        row[child.name] = child.value * m;
+                      });
+                      return row;
+                    });
+                    const colors = ['#0ea5e9', '#22c55e', '#f97316', '#6366f1', '#ec4899', '#0f766e', '#f59e0b', '#8b5cf6', '#14b8a6', '#9ca3af'];
+                    const isPercent = stackMode === 'percent';
+                    return (
+                      <>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs font-medium text-gray-700">
+                            素材结构{isPercent ? '占比' : '绝对值'} · 近15天（{heatmapDimension} 维度）
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => setStackMode('percent')}
+                                className={`px-2 py-0.5 text-[11px] rounded-full ${
+                                  isPercent ? 'bg-slate-800 text-white' : 'text-slate-600'
+                                }`}
+                              >
+                                百分比
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setStackMode('absolute')}
+                                className={`px-2 py-0.5 text-[11px] rounded-full ${
+                                  !isPercent ? 'bg-slate-800 text-white' : 'text-slate-600'
+                                }`}
+                              >
+                                绝对值
+                              </button>
+                            </div>
+                            <div className="text-[11px] text-gray-400 hidden sm:block">
+                              横轴=时间 · 纵轴={isPercent ? '素材占比（100% 堆叠）' : '素材数量（篇）'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-h-[220px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                              data={data}
+                              stackOffset={isPercent ? 'expand' : undefined}
+                              margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                            >
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                              <XAxis dataKey="day" tick={{ fontSize: 10 }} tickLine={false} axisLine={{ stroke: '#CBD5F5' }} />
+                              {isPercent ? (
+                                <YAxis
+                                  tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                                  tick={{ fontSize: 10 }}
+                                  tickLine={false}
+                                  axisLine={false}
+                                />
+                              ) : (
+                                <YAxis
+                                  tickFormatter={(v) => Math.round(v)}
+                                  tick={{ fontSize: 10 }}
+                                  tickLine={false}
+                                  axisLine={false}
+                                />
+                              )}
+                              <Tooltip
+                                formatter={(value, name) =>
+                                  isPercent
+                                    ? [`${Math.round(Number(value) * 100)}%`, String(name)]
+                                    : [`${Math.round(Number(value))} 篇`, String(name)]
+                                }
+                                labelFormatter={(label) => `日期 ${label}`}
+                                contentStyle={{ fontSize: 11 }}
+                              />
+                              {series.map((key, idx) => (
+                                <Area
+                                  key={key}
+                                  type="monotone"
+                                  dataKey={key}
+                                  stackId="share"
+                                  stroke={colors[idx % colors.length]}
+                                  fill={colors[idx % colors.length]}
+                                  fillOpacity={0.85}
+                                />
+                              ))}
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-1 text-[10px] text-gray-500">
+                          {series.map((key, idx) => (
+                            <span key={key} className="inline-flex items-center gap-1 mr-1">
+                              <span
+                                className="w-2.5 h-2.5 rounded-sm"
+                                style={{ backgroundColor: colors[idx % colors.length] }}
+                              />
+                              <span>{key}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* 第二行：竞品战略时间轴（按选中赛道下钻，整行横向铺满） */}
+              <div className="flex-1 min-w-0 flex flex-col pt-2 border-t border-slate-100">
+                {(() => {
+                  // 所有热力图 id 对应的中文展示名（赛道/行业/主题/指数）
+                  const sectorNames = {
+                    ai: '科技行业', nonferrous: '有色金属', petro: '石油石化', rare_earth: '稀土永磁', oil: '油气', chemical: '化工', gold: '黄金', rare_metal: '稀有金属', nasdaq: '纳斯达克', hstech: '恒生科技',
+                    media: '传媒', power: '电力设备', electronics: '电子', real_estate: '房地产', textile: '纺织服饰', nonbank: '非银金融', utility: '公用事业', defense: '国防军工', steel: '钢铁', green: '环保', transport: '交通运输', basic_chem: '基础化工',
+                    margin: '融资融券', mid_report: '2025中报预增', chip: '芯片概念', ev: '新能源汽车', '5g': '5G', soe_reform: '国企改革', datacenter: '数据中心', huawei: '华为概念', west_dev: '西部大开发', robot_theme: '机器人概念',
+                    dividend: '华证龙头红利50指数', home_appliance: '国证龙头家电指数', high_equip: '中证高端装备指数', ev_index: '中证新能源汽车产业指数', high_div_index: '中证高股息优选指数', chip_index: '中证全指集成电路指数', env_index: '中证长江环保主题指数', fintech_index: '中证金融科技主题指数', hk_fintech: '国证香港金融科技指数', us_oilgas: '道琼斯美国石油燃气指数',
+                  };
+                  const sectorLabel = sectorNames[activeMarketSector] || activeMarketSector;
+                  const tagToStage = (tags) => {
+                    if (!tags || !tags.length) return '持盈期';
+                    const t = tags.join('').toLowerCase();
+                    if (/募集|新发冲刺|爆发/.test(t)) return '爆发期';
+                    if (/预热|获批/.test(t)) return '预热期';
+                    if (/市场安抚|防御/.test(t)) return '防御期';
+                    return '持盈期';
+                  };
+                  const stageConfig = {
+                    预热期: { color: '#3b82f6', label: '预热期' },
+                    爆发期: { color: '#ef4444', label: '爆发期' },
+                    持盈期: { color: '#10b981', label: '持盈期' },
+                    防御期: { color: '#64748b', label: '防御期' },
+                  };
+                  // 每个赛道/行业/主题/指数 id 对应真实机构与该方向下的基金产品（15天窗口）
+                  const timelineBySector = {
+                    // === 赛道 ===
+                    ai: [
+                      { institution: '易方达', product: '易方达中证A500ETF', startDay: 1, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 18 },
+                      { institution: '易方达', product: '易方达科技龙头C', startDay: 9, endDay: 14, tags: ['业绩展示'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '广发', product: '广发科技先锋', startDay: 3, endDay: 10, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 15 },
+                      { institution: '华夏', product: '华夏中证机器人ETF', startDay: 5, endDay: 12, tags: ['获批通告'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '南方', product: '南方中证TMT', startDay: 7, endDay: 14, tags: ['持盈'], platforms: ['wechat'], materialCount: 6 },
+                      { institution: '富国', product: '富国科技创新', startDay: 2, endDay: 6, tags: ['预热'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '嘉实', product: '嘉实智能汽车', startDay: 4, endDay: 9, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '汇添富', product: '汇添富成长先锋', startDay: 0, endDay: 4, tags: ['预热'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '中欧', product: '中欧人工智能', startDay: 6, endDay: 13, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '我司', product: '我司AI混合', startDay: 8, endDay: 14, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                    ],
+                    nonferrous: [
+                      { institution: '南方', product: '南方中证申万有色金属ETF', startDay: 0, endDay: 7, tags: ['净值曲线'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '华夏', product: '华夏中证细分有色ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '广发', product: '广发有色金属ETF', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '易方达', product: '易方达资源行业', startDay: 3, endDay: 10, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '嘉实', product: '嘉实稀土产业', startDay: 6, endDay: 11, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '富国', product: '富国有色金属', startDay: 8, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '我司', product: '我司有色周期', startDay: 9, endDay: 14, tags: ['业绩展示'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    petro: [
+                      { institution: '华宝', product: '华宝油气ETF', startDay: 1, endDay: 8, tags: ['净值曲线'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '广发', product: '广发道琼斯石油', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '易方达', product: '易方达原油', startDay: 0, endDay: 5, tags: ['业绩展示'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '南方', product: '南方原油', startDay: 6, endDay: 13, tags: ['持盈'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '嘉实', product: '嘉实原油', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '我司', product: '我司油气配置', startDay: 10, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    rare_earth: [
+                      { institution: '华泰柏瑞', product: '华泰柏瑞稀土ETF', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 14 },
+                      { institution: '嘉实', product: '嘉实稀土产业', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '广发', product: '广发稀土永磁', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '南方', product: '南方稀土主题', startDay: 2, endDay: 7, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司稀土精选', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    oil: [
+                      { institution: '华宝', product: '华宝油气ETF', startDay: 1, endDay: 9, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 11 },
+                      { institution: '广发', product: '广发道琼斯石油', startDay: 4, endDay: 12, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '易方达', product: '易方达原油', startDay: 0, endDay: 5, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '南方', product: '南方原油', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司油气QDII', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    chemical: [
+                      { institution: '富国', product: '富国中证化工ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '华宝', product: '华宝化工ETF', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发基础化工', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '易方达', product: '易方达化工行业', startDay: 7, endDay: 14, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司化工周期', startDay: 10, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    gold: [
+                      { institution: '易方达', product: '易方达黄金ETF', startDay: 1, endDay: 9, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 13 },
+                      { institution: '博时', product: '博时黄金ETF', startDay: 4, endDay: 12, tags: ['业绩展示'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '富国', product: '富国黄金主题', startDay: 0, endDay: 5, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '嘉实', product: '嘉实黄金配置', startDay: 7, endDay: 13, tags: ['持盈'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '中欧', product: '中欧黄金优选', startDay: 3, endDay: 10, tags: ['净值曲线'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '我司', product: '我司贵金属配置', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    rare_metal: [
+                      { institution: '南方', product: '南方中证申万有色金属ETF', startDay: 0, endDay: 7, tags: ['净值曲线'], platforms: ['ant', 'wechat'], materialCount: 9 },
+                      { institution: '华夏', product: '华夏中证细分有色ETF', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发稀有金属', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '嘉实', product: '嘉实稀土产业', startDay: 6, endDay: 11, tags: ['预热'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '我司', product: '我司稀有金属', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    nasdaq: [
+                      { institution: '广发', product: '广发纳斯达克100ETF', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 16 },
+                      { institution: '华夏', product: '华夏纳斯达克100ETF', startDay: 2, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 10 },
+                      { institution: '易方达', product: '易方达纳斯达克100', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '国泰', product: '国泰纳斯达克100', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 6 },
+                      { institution: '南方', product: '南方纳斯达克', startDay: 5, endDay: 12, tags: ['分红战报'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司纳指联接', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    hstech: [
+                      { institution: '华夏', product: '华夏恒生科技ETF', startDay: 1, endDay: 9, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 14 },
+                      { institution: '易方达', product: '易方达恒生科技ETF', startDay: 3, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '广发', product: '广发恒生科技', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '大成', product: '大成恒生科技', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '华泰柏瑞', product: '华泰柏瑞恒生科技', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司恒生科技', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    // === 行业 ===
+                    media: [
+                      { institution: '广发', product: '广发中证传媒ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 11 },
+                      { institution: '鹏华', product: '鹏华传媒ETF', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '华夏', product: '华夏中证传媒', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方传媒主题', startDay: 6, endDay: 13, tags: ['预热'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司传媒精选', startDay: 8, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    power: [
+                      { institution: '易方达', product: '易方达中证新能源', startDay: 1, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 15 },
+                      { institution: '广发', product: '广发中证电力设备ETF', startDay: 3, endDay: 10, tags: ['募集启动'], platforms: ['ant'], materialCount: 10 },
+                      { institution: '华夏', product: '华夏中证新能源ETF', startDay: 5, endDay: 12, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '南方', product: '南方新能源', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['wechat'], materialCount: 6 },
+                      { institution: '富国', product: '富国中证电力设备', startDay: 7, endDay: 14, tags: ['净值曲线'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '汇添富', product: '汇添富新能源', startDay: 4, endDay: 11, tags: ['分红战报'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司电力设备', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    electronics: [
+                      { institution: '华夏', product: '华夏国证芯片ETF', startDay: 2, endDay: 9, tags: ['爆发'], platforms: ['ant', 'wechat'], materialCount: 14 },
+                      { institution: '广发', product: '广发半导体精选C', startDay: 4, endDay: 12, tags: ['分红战报'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '易方达', product: '易方达芯片ETF', startDay: 1, endDay: 6, tags: ['预热'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '富国', product: '富国半导体龙头', startDay: 7, endDay: 14, tags: ['业绩展示'], platforms: ['wechat'], materialCount: 7 },
+                      { institution: '汇添富', product: '汇添富电子ETF', startDay: 3, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '南方', product: '南方中证电子', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司电子指数', startDay: 8, endDay: 14, tags: ['获批通告'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    real_estate: [
+                      { institution: '南方', product: '南方中证全指房地产ETF', startDay: 0, endDay: 8, tags: ['持盈'], platforms: ['ant', 'wechat'], materialCount: 9 },
+                      { institution: '华夏', product: '华夏中证房地产', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '鹏华', product: '鹏华地产ETF', startDay: 5, endDay: 12, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '招商', product: '招商房地产', startDay: 2, endDay: 7, tags: ['市场安抚'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '我司', product: '我司地产配置', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    textile: [
+                      { institution: '广发', product: '广发中证纺织服饰', startDay: 2, endDay: 8, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '富国', product: '富国纺织服饰', startDay: 4, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '华夏', product: '华夏纺织制造', startDay: 6, endDay: 12, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '我司', product: '我司纺织主题', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    nonbank: [
+                      { institution: '易方达', product: '易方达中证保险', startDay: 1, endDay: 8, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '华夏', product: '华夏中证券商ETF', startDay: 3, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '南方', product: '南方非银金融', startDay: 5, endDay: 12, tags: ['净值曲线'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发证券保险', startDay: 0, endDay: 6, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '富国', product: '富国证券分级', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司非银配置', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    utility: [
+                      { institution: '广发', product: '广发中证公用事业', startDay: 2, endDay: 9, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '华夏', product: '华夏公用事业', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '南方', product: '南方公用事业', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '富国', product: '富国公用事业', startDay: 7, endDay: 14, tags: ['分红战报'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司公用事业', startDay: 10, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    defense: [
+                      { institution: '广发', product: '广发中证军工ETF', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '华夏', product: '华夏国防军工ETF', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '易方达', product: '易方达国防军工', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '富国', product: '富国军工主题', startDay: 2, endDay: 7, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '南方', product: '南方军工', startDay: 6, endDay: 13, tags: ['获批通告'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司国防军工', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    steel: [
+                      { institution: '国泰', product: '国泰钢铁ETF', startDay: 1, endDay: 8, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '鹏华', product: '鹏华钢铁', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '华夏', product: '华夏中证钢铁', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '广发', product: '广发钢铁', startDay: 6, endDay: 13, tags: ['分红战报'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '我司', product: '我司钢铁周期', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    green: [
+                      { institution: '华夏', product: '华夏中证长江环保ETF', startDay: 2, endDay: 9, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '广发', product: '广发环保ETF', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '易方达', product: '易方达环保主题', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '富国', product: '富国环保产业', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司环保主题', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    transport: [
+                      { institution: '华夏', product: '华夏中证运输ETF', startDay: 1, endDay: 8, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '南方', product: '南方交通运输', startDay: 3, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发交运', startDay: 0, endDay: 5, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '富国', product: '富国交通运输', startDay: 6, endDay: 13, tags: ['分红战报'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司交运配置', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    basic_chem: [
+                      { institution: '富国', product: '富国中证化工ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 9 },
+                      { institution: '华宝', product: '华宝基础化工', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发基础化工', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '易方达', product: '易方达化工行业', startDay: 7, endDay: 14, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司基础化工', startDay: 10, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    // === 主题 ===
+                    margin: [
+                      { institution: '华夏', product: '华夏融资融券ETF', startDay: 1, endDay: 8, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '易方达', product: '易方达两融主题', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '广发', product: '广发两融策略', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方融资融券', startDay: 6, endDay: 13, tags: ['预热'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '我司', product: '我司两融增强', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    mid_report: [
+                      { institution: '广发', product: '广发中报预增策略', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '华夏', product: '华夏业绩预增', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '易方达', product: '易方达预增主题', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '南方', product: '南方中报行情', startDay: 2, endDay: 7, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司预增精选', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    chip: [
+                      { institution: '华夏', product: '华夏国证芯片ETF', startDay: 2, endDay: 9, tags: ['爆发'], platforms: ['ant', 'wechat'], materialCount: 16 },
+                      { institution: '广发', product: '广发半导体精选C', startDay: 4, endDay: 12, tags: ['分红战报'], platforms: ['ant'], materialCount: 11 },
+                      { institution: '易方达', product: '易方达芯片ETF', startDay: 1, endDay: 6, tags: ['预热'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '富国', product: '富国半导体龙头', startDay: 7, endDay: 14, tags: ['业绩展示'], platforms: ['wechat'], materialCount: 8 },
+                      { institution: '汇添富', product: '汇添富芯片ETF', startDay: 3, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '我司', product: '我司芯片指数', startDay: 8, endDay: 14, tags: ['获批通告'], platforms: ['ant'], materialCount: 5 },
+                    ],
+                    ev: [
+                      { institution: '华夏', product: '华夏中证新能源车ETF', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 15 },
+                      { institution: '广发', product: '广发新能源车', startDay: 3, endDay: 10, tags: ['募集启动'], platforms: ['ant'], materialCount: 10 },
+                      { institution: '易方达', product: '易方达新能源', startDay: 5, endDay: 12, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '汇添富', product: '汇添富新能源车', startDay: 2, endDay: 7, tags: ['持盈'], platforms: ['wechat'], materialCount: 6 },
+                      { institution: '南方', product: '南方新能源车', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '富国', product: '富国智能汽车', startDay: 7, endDay: 14, tags: ['分红战报'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司新能源车', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    '5g': [
+                      { institution: '华夏', product: '华夏5G通信ETF', startDay: 1, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '银华', product: '银华5G通信', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '国泰', product: '国泰5G ETF', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '广发', product: '广发5G主题', startDay: 6, endDay: 13, tags: ['预热'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司5G通信', startDay: 8, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    soe_reform: [
+                      { institution: '华夏', product: '华夏国企改革ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 11 },
+                      { institution: '易方达', product: '易方达国企改革', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '南方', product: '南方国企改革', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '广发', product: '广发国企改革', startDay: 6, endDay: 13, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司国企改革', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    datacenter: [
+                      { institution: '华夏', product: '华夏中证数据中心ETF', startDay: 1, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '易方达', product: '易方达云计算', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '广发', product: '广发数据中心', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方云计算ETF', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司数据中心', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    huawei: [
+                      { institution: '华夏', product: '华夏华为概念ETF', startDay: 0, endDay: 8, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 14 },
+                      { institution: '广发', product: '广发华为产业链', startDay: 3, endDay: 10, tags: ['业绩展示'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '易方达', product: '易方达华为主题', startDay: 5, endDay: 12, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '汇添富', product: '汇添富华为概念', startDay: 2, endDay: 7, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司华为产业链', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    west_dev: [
+                      { institution: '广发', product: '广发西部大开发', startDay: 2, endDay: 8, tags: ['业绩展示'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '华夏', product: '华夏西部主题', startDay: 4, endDay: 10, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方西部基建', startDay: 0, endDay: 5, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '我司', product: '我司西部开发', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    robot_theme: [
+                      { institution: '华夏', product: '华夏中证机器人ETF', startDay: 1, endDay: 9, tags: ['获批通告'], platforms: ['ant', 'wechat'], materialCount: 13 },
+                      { institution: '易方达', product: '易方达机器人', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '广发', product: '广发机器人主题', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '南方', product: '南方机器人ETF', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '富国', product: '富国智能机器人', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司机器人混合', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    // === 指数 ===
+                    dividend: [
+                      { institution: '华夏', product: '华夏红利低波ETF', startDay: 0, endDay: 10, tags: ['分红战报'], platforms: ['ant', 'wechat'], materialCount: 16 },
+                      { institution: '南方', product: '南方红利低波', startDay: 3, endDay: 12, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 10 },
+                      { institution: '易方达', product: '易方达红利混合', startDay: 5, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '富国', product: '富国红利精选', startDay: 2, endDay: 7, tags: ['预热'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '嘉实', product: '嘉实红利机会', startDay: 6, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '汇添富', product: '汇添富高股息', startDay: 1, endDay: 6, tags: ['持盈'], platforms: ['wechat'], materialCount: 4 },
+                      { institution: '中欧', product: '中欧红利策略', startDay: 4, endDay: 9, tags: ['分红战报'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '广发', product: '广发红利增强', startDay: 8, endDay: 14, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '我司', product: '我司红利策略', startDay: 9, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                    ],
+                    home_appliance: [
+                      { institution: '华夏', product: '华夏国证龙头家电ETF', startDay: 2, endDay: 9, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '广发', product: '广发家电ETF', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '易方达', product: '易方达家电行业', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方家电主题', startDay: 6, endDay: 13, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司龙头家电', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    high_equip: [
+                      { institution: '华夏', product: '华夏中证高端装备ETF', startDay: 1, endDay: 9, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 12 },
+                      { institution: '广发', product: '广发高端装备', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '易方达', product: '易方达高端制造', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '富国', product: '富国高端装备', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 6 },
+                      { institution: '我司', product: '我司高端装备', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    ev_index: [
+                      { institution: '华夏', product: '华夏中证新能源车ETF', startDay: 0, endDay: 8, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 14 },
+                      { institution: '广发', product: '广发新能源汽车产业', startDay: 3, endDay: 10, tags: ['募集启动'], platforms: ['ant'], materialCount: 9 },
+                      { institution: '易方达', product: '易方达新能源车指数', startDay: 5, endDay: 12, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '汇添富', product: '汇添富新能源车ETF', startDay: 2, endDay: 7, tags: ['持盈'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司新能源车指数', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    high_div_index: [
+                      { institution: '华夏', product: '华夏高股息ETF', startDay: 1, endDay: 8, tags: ['分红战报'], platforms: ['ant', 'wechat'], materialCount: 11 },
+                      { institution: '南方', product: '南方高股息优选', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '易方达', product: '易方达高股息', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '富国', product: '富国高股息策略', startDay: 6, endDay: 13, tags: ['业绩展示'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司高股息指数', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    chip_index: [
+                      { institution: '华夏', product: '华夏国证芯片ETF', startDay: 2, endDay: 9, tags: ['爆发'], platforms: ['ant', 'wechat'], materialCount: 15 },
+                      { institution: '广发', product: '广发中证全指集成电路', startDay: 4, endDay: 12, tags: ['分红战报'], platforms: ['ant'], materialCount: 10 },
+                      { institution: '易方达', product: '易方达芯片ETF', startDay: 1, endDay: 6, tags: ['预热'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '富国', product: '富国半导体龙头', startDay: 7, endDay: 14, tags: ['业绩展示'], platforms: ['wechat'], materialCount: 7 },
+                      { institution: '我司', product: '我司集成电路指数', startDay: 8, endDay: 14, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                    ],
+                    env_index: [
+                      { institution: '华夏', product: '华夏中证长江环保ETF', startDay: 2, endDay: 9, tags: ['募集启动'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '广发', product: '广发环保主题', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '易方达', product: '易方达环保指数', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '富国', product: '富国环保产业', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司长江环保', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    fintech_index: [
+                      { institution: '华夏', product: '华夏中证金融科技ETF', startDay: 1, endDay: 9, tags: ['新发冲刺'], platforms: ['ant', 'wechat'], materialCount: 13 },
+                      { institution: '易方达', product: '易方达金融科技', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 8 },
+                      { institution: '广发', product: '广发金融科技', startDay: 0, endDay: 6, tags: ['持盈'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '南方', product: '南方金融科技ETF', startDay: 6, endDay: 13, tags: ['净值曲线'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司金融科技', startDay: 8, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 4 },
+                    ],
+                    hk_fintech: [
+                      { institution: '华夏', product: '华夏香港金融科技ETF', startDay: 2, endDay: 8, tags: ['业绩展示'], platforms: ['ant', 'wechat'], materialCount: 9 },
+                      { institution: '广发', product: '广发国证香港金融科技', startDay: 4, endDay: 11, tags: ['持盈'], platforms: ['ant'], materialCount: 6 },
+                      { institution: '易方达', product: '易方达港股金融科技', startDay: 0, endDay: 6, tags: ['净值曲线'], platforms: ['ant'], materialCount: 5 },
+                      { institution: '我司', product: '我司港股金融科技', startDay: 7, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                    us_oilgas: [
+                      { institution: '华宝', product: '华宝标普油气', startDay: 1, endDay: 9, tags: ['净值曲线'], platforms: ['ant', 'wechat'], materialCount: 10 },
+                      { institution: '广发', product: '广发道琼斯美国石油', startDay: 4, endDay: 11, tags: ['业绩展示'], platforms: ['ant'], materialCount: 7 },
+                      { institution: '易方达', product: '易方达原油', startDay: 0, endDay: 5, tags: ['持盈'], platforms: ['ant'], materialCount: 4 },
+                      { institution: '南方', product: '南方原油', startDay: 6, endDay: 13, tags: ['分红战报'], platforms: ['wechat'], materialCount: 5 },
+                      { institution: '我司', product: '我司美国油气', startDay: 9, endDay: 14, tags: ['预热'], platforms: ['ant'], materialCount: 3 },
+                    ],
+                  };
+                  const baseKey = activeMarketSector;
+                  const campaigns = (timelineBySector[baseKey] || []).map((c) => ({
+                    ...c,
+                    stage: tagToStage(c.tags),
+                  }));
+                  const institutions = [...new Set(campaigns.map((c) => c.institution))].sort((a, b) =>
+                    a === '我司' ? 1 : b === '我司' ? -1 : a.localeCompare(b)
+                  );
+                  const totalDays = 15;
+                  const rowHeight = 56;
+                  const platformIcons = { ant: '🐜', wechat: '💬', douyin: '📕' };
+                  const platformNames = { ant: '蚂蚁财富', wechat: '微信公众号', douyin: '小红书' };
+
+                  const formatDayLabel = (dayIndex) => {
+                    const d = Math.max(0, Math.min(totalDays - 1, Number(dayIndex) || 0));
+                    return `T-${totalDays - 1 - d}`;
+                  };
+
+                  const gridTemplate = { gridTemplateColumns: `repeat(${totalDays}, minmax(0, 1fr))` };
+
+                  return (
+                    <>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                        战略时间轴：{sectorLabel} · 近15天
+                      </h4>
+                      <p className="text-xs text-gray-500 mb-3">左侧机构固定，右侧时间轴按天均分 · 色深=热度</p>
+
+                      <div className="flex w-full h-full border border-slate-200 rounded-lg bg-slate-50/50 overflow-hidden">
+                        {/* 左侧机构列（固定） */}
+                        <div className="w-32 md:w-40 flex-shrink-0 bg-slate-50 border-r border-slate-200">
+                          {/* 表头占位，与日期行高度一致 */}
+                          <div className="h-9 border-b border-slate-200" />
+                          {institutions.map((inst) => (
+                            <div
+                              key={inst}
+                              className={`flex items-center justify-center border-b border-slate-100 text-xs font-semibold ${
+                                inst === '我司' ? 'bg-yellow-50 text-amber-900' : 'bg-white text-gray-800'
+                              }`}
+                              style={{ height: rowHeight }}
+                            >
+                              {inst === '我司' ? '【我司】' : inst}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* 右侧时间轴（可横向滚动） */}
+                        <div className="flex-1 overflow-x-auto">
+                          <div className="min-w-full">
+                            {/* 日期表头 */}
+                            <div
+                              className="grid border-b border-slate-200 bg-slate-100/80 text-xs text-gray-600 font-medium"
+                              style={gridTemplate}
+                            >
+                              {Array.from({ length: totalDays }, (_, i) => (
+                                <div key={i} className="h-9 flex items-center justify-center border-r border-slate-200">
+                                  T-{totalDays - 1 - i}
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* 数据行 */}
+                            {institutions.map((inst) => {
+                              const rowCampaigns = campaigns.filter((c) => c.institution === inst);
+                              return (
+                                <div
+                                  key={inst}
+                                  className={`grid border-b border-slate-100 ${
+                                    inst === '我司' ? 'bg-yellow-50/60' : 'bg-white'
+                                  }`}
+                                  style={{ ...gridTemplate, height: rowHeight }}
+                                >
+                                  {rowCampaigns.map((node, idx) => {
+                                    const start = Math.max(0, node.startDay ?? 0);
+                                    const end = Math.min(totalDays - 1, node.endDay ?? node.startDay ?? 0);
+                                    const heatScore = (node.materialCount || 0) * (node.platforms?.length || 1);
+                                    const tier = heatScore >= 20 ? 3 : heatScore >= 10 ? 2 : 1;
+                                    const heatColors = ['#bfdbfe', '#60a5fa', '#1d4ed8'];
+                                    const color = heatColors[tier - 1];
+                                    const durationDays = end - start + 1;
+                                    const sExposureDays = Math.max(1, Math.round(durationDays * 0.4));
+                                    const rangeLabel = `${formatDayLabel(start)} ~ ${formatDayLabel(end)}`;
+                                    const platformText = (node.platforms || [])
+                                      .map((p) => `${platformIcons[p] || ''}${platformNames[p] || p}`)
+                                      .join(' / ');
+                                    const shortName =
+                                      node.product.replace(node.institution, '').replace(/^[·\s]+/, '') ||
+                                      node.product.slice(0, 10);
+                                    return (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center justify-center px-1"
+                                        style={{
+                                          gridColumnStart: start + 1,
+                                          gridColumnEnd: end + 2,
+                                        }}
+                                        title={`${node.product}
+机构：${node.institution}
+平台：${platformText}
+时间区间：${rangeLabel}（共 ${durationDays} 天）
+S级曝光位：约 ${sExposureDays} 天
+标签：${(node.tags || []).join('、')}
+物料数：${node.materialCount} 篇`}
+                                      >
+                                        <div
+                                          className="w-full rounded-full border text-xs font-semibold text-center py-1 truncate shadow-sm"
+                                          style={{ backgroundColor: color, borderColor: color, color: '#fff' }}
+                                        >
+                                          {shortName}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+
+                            {institutions.length === 0 && (
+                              <div className="flex items-center justify-center py-10 text-gray-400 text-sm">
+                                该赛道暂无竞品推广数据
                               </div>
-                            )) : (
-                              <div className="text-[11px] text-slate-500 py-2">暂无推手数据</div>
                             )}
                           </div>
-                        </>
-                      );
-                    })()}
-                  </div>,
-                  document.body
-                )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3 mt-2 px-1 text-xs text-gray-600">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-[#bfdbfe]" /> 低热度（少量物料+单一平台）
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-[#60a5fa]" /> 中热度（适中物料+多平台）
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded bg-[#1d4ed8]" /> 高热度（大量物料+多平台）
+                        </span>
+                          <span className="text-gray-500 ml-2">
+                          条长=投放时长 · 颜色深浅=热度 · 🐜蚂蚁 💬微信 📕小红书
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
-            {/* 模块三：渠道流量地图（宏观 SOV + 微观战术矩阵） */}
+            {/* 模块三：渠道流量地图（素材分布） */}
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="mb-3">
                 <h4 className="text-sm font-semibold text-gray-900">渠道流量地图</h4>
                 <p className="mt-1 text-xs text-gray-500">
-                  从宏观看声量占有率（SOV），微观看竞品在各渠道的战术形式与流量热度。
+                  看清素材在平台 / 机构之间的分布结构，支持按机构或按平台查看占比。
                 </p>
               </div>
 
-              {/* 宏观层：渠道声量占有率 SOV（横向堆叠柱状图） */}
+              {/* 素材分布：可切换机构 / 平台（横向堆叠柱状图） */}
               <div className="mb-4">
-                <div className="text-[11px] font-medium text-gray-700 mb-2">渠道声量占有率 Share of Voice</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[11px] font-medium text-gray-700">
+                    素材分布 · 物料数量占比
+                  </div>
+                  <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setMaterialDistMode('platform')}
+                      className={`px-2 py-0.5 text-[11px] rounded-full ${
+                        materialDistMode === 'platform' ? 'bg-slate-800 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      按平台
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMaterialDistMode('institution')}
+                      className={`px-2 py-0.5 text-[11px] rounded-full ${
+                        materialDistMode === 'institution' ? 'bg-slate-800 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      按机构
+                    </button>
+                  </div>
+                </div>
                 <div className="h-44">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      layout="vertical"
-                      data={[
-                        { channel: '蚂蚁财富', 易方达: 30, 广发: 25, 华夏: 20, 其他: 25 },
-                        { channel: '微信公众号', 易方达: 28, 广发: 22, 华夏: 18, 其他: 32 },
-                        { channel: '抖音', 易方达: 35, 广发: 30, 华夏: 15, 其他: 20 },
-                        { channel: '小红书', 易方达: 18, 广发: 15, 华夏: 12, 其他: 55 },
-                      ]}
-                      margin={{ top: 4, right: 8, bottom: 4, left: 72 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
-                      <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 10 }} tickLine={false} axisLine={{ stroke: '#94A3B8' }} />
-                      <YAxis type="category" dataKey="channel" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} width={68} />
-                      <Tooltip formatter={(v) => [`${v}%`, '']} contentStyle={{ fontSize: 11 }} />
-                      <Bar dataKey="易方达" stackId="sov" fill="#ef4444" name="易方达" />
-                      <Bar dataKey="广发" stackId="sov" fill="#3b82f6" name="广发" />
-                      <Bar dataKey="华夏" stackId="sov" fill="#eab308" name="华夏" />
-                      <Bar dataKey="其他" stackId="sov" fill="#94a3b8" name="其他" />
-                    </BarChart>
+                    {(() => {
+                      const platformData = [
+                        { name: '蚂蚁财富', 易方达: 30, 广发: 25, 华夏: 20, 其他: 25 },
+                        { name: '微信公众号', 易方达: 28, 广发: 22, 华夏: 18, 其他: 32 },
+                        { name: '小红书', 易方达: 35, 广发: 30, 华夏: 15, 其他: 20 },
+                      ];
+                      const institutionData = [
+                        { name: '易方达', 蚂蚁财富: 32, 微信公众号: 28, 小红书: 40 },
+                        { name: '广发', 蚂蚁财富: 30, 微信公众号: 22, 小红书: 35 },
+                        { name: '华夏', 蚂蚁财富: 20, 微信公众号: 18, 小红书: 25 },
+                        { name: '其他', 蚂蚁财富: 18, 微信公众号: 32, 小红书: 20 },
+                      ];
+                      const isPlatform = materialDistMode === 'platform';
+                      const data = isPlatform ? platformData : institutionData;
+                      const xKeys = isPlatform ? ['易方达', '广发', '华夏', '其他'] : ['蚂蚁财富', '微信公众号', '小红书'];
+                      const colors = ['#ef4444', '#3b82f6', '#eab308', '#94a3b8'];
+                      return (
+                        <BarChart layout="vertical" data={data} margin={{ top: 4, right: 8, bottom: 4, left: 72 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E5E7EB" />
+                          <XAxis
+                            type="number"
+                            domain={[0, 100]}
+                            unit="%"
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={{ stroke: '#94A3B8' }}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={{ fontSize: 11 }}
+                            axisLine={false}
+                            tickLine={false}
+                            width={72}
+                          />
+                          <Tooltip formatter={(v, name) => [`${v}%`, String(name)]} contentStyle={{ fontSize: 11 }} />
+                          {xKeys.map((key, idx) => (
+                            <Bar key={key} dataKey={key} stackId="dist" fill={colors[idx]} name={key} />
+                          ))}
+                        </BarChart>
+                      );
+                    })()}
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px]">
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500" /> 易方达</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> 广发</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> 华夏</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-400" /> 其他</span>
+                  {materialDistMode === 'platform' ? (
+                    <>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500" /> 易方达</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> 广发</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> 华夏</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-400" /> 其他</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-500" /> 蚂蚁财富</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-500" /> 微信公众号</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-400" /> 小红书</span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* 微观层：竞品战术矩阵 */}
+              {/* 曝光堆叠曲线：机构维度 · 时间 X 曝光次数 */}
               <div>
-                <div className="text-[11px] font-medium text-gray-700 mb-2">竞品战术矩阵 Competitor Tactics Matrix</div>
-                <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-                  <table className="w-full border-collapse text-[10px]">
-                    <thead>
-                      <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
-                        <th className="text-left py-2 px-2 font-semibold text-slate-700 bg-slate-50/80 w-20 first:rounded-tl-lg border-r border-slate-200">机构 \ 渠道</th>
-                        <th className="text-center py-2 px-2 font-semibold text-slate-700 min-w-[100px] border-r border-slate-200">蚂蚁财富</th>
-                        <th className="text-center py-2 px-2 font-semibold text-slate-700 min-w-[100px] border-r border-slate-200">微信公众号</th>
-                        <th className="text-center py-2 px-2 font-semibold text-slate-700 min-w-[100px] border-r border-slate-200">抖音</th>
-                        <th className="text-center py-2 px-2 font-semibold text-slate-700 min-w-[100px] last:rounded-tr-lg">小红书</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { name: '易方达', cells: [
-                          { content: '🔥 业绩榜单 (红榜)', heat: 'high' },
-                          { content: '📄 深度研报 (长文)', heat: 'mid' },
-                          { content: '📹 经理口播 (真人)', heat: 'high' },
-                          { content: '—', heat: 'empty' },
-                        ]},
-                        { name: '广发', cells: [
-                          { content: '📜 一图看懂 (长图)', heat: 'mid' },
-                          { content: '📄 热点解读 (长文)', heat: 'mid' },
-                          { content: '🎬 剧情短片 (投教)', heat: 'high' },
-                          { content: '🖼️ 存钱计划 (海报)', heat: 'mid' },
-                        ]},
-                        { name: '华夏', cells: [
-                          { content: '📜 ETF新发海报', heat: 'high' },
-                          { content: '📄 红利低波战报', heat: 'mid' },
-                          { content: '📹 机器人主题口播', heat: 'high' },
-                          { content: '🖼️ 定投日历', heat: 'mid' },
-                        ]},
-                        { name: '南方', cells: [
-                          { content: '📄 TMT赛道周报', heat: 'mid' },
-                          { content: '📹 科技主题短视频', heat: 'high' },
-                          { content: '🔴 直播路演', heat: 'high' },
-                          { content: '📜 指数一图流', heat: 'mid' },
-                        ]},
-                        { name: '富国', cells: [
-                          { content: '📄 短债稳健文案', heat: 'mid' },
-                          { content: '📹 投教动画', heat: 'mid' },
-                          { content: '—', heat: 'empty' },
-                          { content: '🖼️ 稳健替代海报', heat: 'low' },
-                        ]},
-                        { name: '嘉实', cells: [
-                          { content: '📜 宽基指数长图', heat: 'high' },
-                          { content: '📄 基金经理观点', heat: 'mid' },
-                          { content: '📹 市场解读视频', heat: 'mid' },
-                          { content: '🖼️ 定投计划', heat: 'mid' },
-                        ]},
-                        { name: '汇添富', cells: [
-                          { content: '🔥 收益榜单', heat: 'high' },
-                          { content: '📄 消费主题研报', heat: 'mid' },
-                          { content: '📹 经理访谈', heat: 'high' },
-                          { content: '🖼️ 理财科普漫画', heat: 'mid' },
-                        ]},
-                        { name: '中欧', cells: [
-                          { content: '📹 直播切片 (短视频)', heat: 'high' },
-                          { content: '👩‍⚕️ 葛兰来信 (软文)', heat: 'mid' },
-                          { content: '—', heat: 'empty' },
-                          { content: '🖼️ 医疗科普 (漫画)', heat: 'mid' },
-                        ]},
-                        { name: '我司', isUs: true, cells: [
-                          { content: '📄 市场复盘 (低流)', heat: 'low' },
-                          { content: '📄 周报 (低流)', heat: 'low' },
-                          { content: '📹 MG动画 (低流)', heat: 'low' },
-                          { content: '—', heat: 'empty' },
-                        ]},
-                      ].map((row, rowIdx) => (
-                        <tr key={row.name} className={`border-b border-slate-100 last:border-b-0 ${row.isUs ? 'bg-amber-50/60' : rowIdx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'} hover:bg-slate-50/60 transition-colors`}>
-                          <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap border-r border-slate-100">{row.isUs ? '【我司】' : row.name}</td>
-                          {row.cells.map((cell, idx) => (
-                            <td
-                              key={idx}
-                              className={`py-1.5 px-2 text-center align-top border-r border-slate-100 last:border-r-0 ${cell.heat === 'high' ? 'bg-red-50 text-red-900' : cell.heat === 'mid' ? 'bg-amber-50/80 text-amber-900' : cell.heat === 'low' ? 'bg-slate-100 text-slate-600' : 'bg-slate-50/50 text-slate-400'}`}
-                            >
-                              {cell.content}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex items-center justify-between mb-2 mt-1">
+                  <div className="text-[11px] font-medium text-gray-700">
+                    渠道曝光趋势 · 机构堆叠
+                  </div>
+                  <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setChannelStackMode('percent')}
+                      className={`px-2 py-0.5 text-[11px] rounded-full ${
+                        channelStackMode === 'percent' ? 'bg-slate-800 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      百分比
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChannelStackMode('absolute')}
+                      className={`px-2 py-0.5 text-[11px] rounded-full ${
+                        channelStackMode === 'absolute' ? 'bg-slate-800 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      绝对值
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 text-[9px] text-gray-500">
-                  <span>图例：📹 视频</span>
-                  <span>📜 长图</span>
-                  <span>📄 文章</span>
-                  <span>🔴 直播</span>
-                  <span>🖼️ 海报</span>
-                  <span className="ml-2">颜色深浅 = 流量热度</span>
+                <div className="h-40">
+                  <ResponsiveContainer width="100%" height="100%">
+                    {(() => {
+                      const days = ['T-14', 'T-12', 'T-10', 'T-8', 'T-6', 'T-4', 'T-2', 'T-0'];
+                      const data = [
+                        { day: 'T-14', 易方达: 3200, 广发: 2600, 华夏: 2100, 其他: 1800 },
+                        { day: 'T-12', 易方达: 3400, 广发: 2700, 华夏: 2200, 其他: 1700 },
+                        { day: 'T-10', 易方达: 3600, 广发: 2900, 华夏: 2300, 其他: 1800 },
+                        { day: 'T-8', 易方达: 3800, 广发: 3000, 华夏: 2400, 其他: 1900 },
+                        { day: 'T-6', 易方达: 4000, 广发: 3100, 华夏: 2500, 其他: 2000 },
+                        { day: 'T-4', 易方达: 4200, 广发: 3200, 华夏: 2600, 其他: 2100 },
+                        { day: 'T-2', 易方达: 4300, 广发: 3300, 华夏: 2700, 其他: 2200 },
+                        { day: 'T-0', 易方达: 4500, 广发: 3400, 华夏: 2800, 其他: 2300 },
+                      ];
+                      const colors = ['#ef4444', '#3b82f6', '#eab308', '#9ca3af'];
+                      const isPercent = channelStackMode === 'percent';
+                      return (
+                        <AreaChart
+                          data={data}
+                          stackOffset={isPercent ? 'expand' : undefined}
+                          margin={{ top: 4, right: 8, left: 0, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis
+                            dataKey="day"
+                            tick={{ fontSize: 10 }}
+                            tickLine={false}
+                            axisLine={{ stroke: '#CBD5F5' }}
+                          />
+                          {isPercent ? (
+                            <YAxis
+                              tickFormatter={(v) => `${Math.round(v * 100)}%`}
+                              tick={{ fontSize: 10 }}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                          ) : (
+                            <YAxis
+                              tickFormatter={(v) => `${Math.round(v / 100) / 10}万`}
+                              tick={{ fontSize: 10 }}
+                              tickLine={false}
+                              axisLine={false}
+                            />
+                          )}
+                          <Tooltip
+                            formatter={(value, name) =>
+                              isPercent
+                                ? [`${Math.round(Number(value) * 100)}%`, String(name)]
+                                : [`${Math.round(Number(value)).toLocaleString()} 次`, String(name)]
+                            }
+                            labelFormatter={(label) => `日期 ${label}`}
+                            contentStyle={{ fontSize: 11 }}
+                          />
+                          {['易方达', '广发', '华夏', '其他'].map((key, idx) => (
+                            <Area
+                              key={key}
+                              type="monotone"
+                              dataKey={key}
+                              stackId="expo"
+                              stroke={colors[idx]}
+                              fill={colors[idx]}
+                              fillOpacity={0.9}
+                            />
+                          ))}
+                        </AreaChart>
+                      );
+                    })()}
+                  </ResponsiveContainer>
                 </div>
               </div>
             </div>
+
+            {false && (
+              <>
 
             {/* 模块四：供需机会缺口（平台流量趋势 · 高胜率 Alpha 模型） */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
@@ -916,6 +1479,9 @@ const IndustryRadar = () => {
                 </div>
               </div>
             </div>
+
+              </>
+            )}
 
             {/* 模块六：高赞神评雷达（小红书 / 蚂蚁财富） */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col h-full transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">

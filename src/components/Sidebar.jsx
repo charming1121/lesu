@@ -1,17 +1,11 @@
 import React from 'react';
-import {
-  Activity,
-  Search,
-} from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 
 const Sidebar = ({ currentPage, onPageChange }) => {
   const menuItems = [
     {
       category: '核心功能',
-      items: [
-        { id: 'monitoring', label: '全网监控', icon: Activity },
-        { id: 'material', label: '素材检索', icon: Search },
-      ],
+      items: [{ id: 'multidim', label: '多维数据看板', icon: LayoutDashboard }],
     },
   ];
 
@@ -24,7 +18,6 @@ const Sidebar = ({ currentPage, onPageChange }) => {
 
   return (
     <aside className="fixed left-0 top-0 h-full w-[240px] bg-white shadow-sm z-10">
-      {/* Logo */}
       <div className="h-20 flex items-center justify-center border-b border-gray-100">
         <div className="text-xl font-semibold text-gray-800">
           <span className="text-blue-600">乐素</span>
@@ -32,7 +25,6 @@ const Sidebar = ({ currentPage, onPageChange }) => {
         </div>
       </div>
 
-      {/* Navigation Menu */}
       <nav className="mt-6 px-3">
         {menuItems.map((category, categoryIndex) => (
           <div key={categoryIndex} className="mb-6">
@@ -43,6 +35,7 @@ const Sidebar = ({ currentPage, onPageChange }) => {
               {category.items.map((item) => {
                 const IconComponent = item.icon;
                 const isActive = currentPage === item.id;
+
                 return (
                   <li key={item.id}>
                     <a
