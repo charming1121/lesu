@@ -5,7 +5,11 @@ const Sidebar = ({ currentPage, onPageChange }) => {
   const menuItems = [
     {
       category: '核心功能',
-      items: [{ id: 'multidim', label: '多维数据看板', icon: LayoutDashboard }],
+      items: [
+        { id: 'multidim', label: '多维数据看板', icon: LayoutDashboard },
+        { id: 'content-center-insight', label: '内容中心洞察', icon: LayoutDashboard },
+        { id: 'operations-insight', label: '运营洞察', icon: LayoutDashboard },
+      ],
     },
   ];
 

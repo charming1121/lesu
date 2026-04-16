@@ -2,7 +2,10 @@ import React from 'react';
 
 const Header = ({ currentPage }) => {
   const getPageTitle = () => {
-    return currentPage === 'multidim' ? '多维数据看板' : '首页';
+    if (currentPage === 'multidim') return '多维数据看板';
+    if (currentPage === 'content-center-insight') return '内容中心洞察';
+    if (currentPage === 'operations-insight') return '运营洞察';
+    return '首页';
   };
 
   return (

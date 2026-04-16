@@ -582,6 +582,7 @@ const RETRO_EVENTS = [
 ];
 
 const CHANNEL_COLORS = ['#6b8fd6', '#7eb8a6', '#d8a29b', '#9a8fc8', '#a7b0ba'];
+const DASHBOARD_TABS = ['市场热点', '多维对比', '行动建议'];
 
 function shortLabel(label, max = 9) {
   const text = String(label || '');
@@ -618,6 +619,7 @@ function scatterColor(type) {
 }
 
 const MultiDimDashboard = () => {
+  const [activeTab, setActiveTab] = useState('市场热点');
   const [activeDim, setActiveDim] = useState('赛道');
   const [channelMatrixDim, setChannelMatrixDim] = useState('赛道');
   const [selectedRetroEvent, setSelectedRetroEvent] = useState('ai_hardware');
@@ -687,6 +689,26 @@ const MultiDimDashboard = () => {
 
   return (
     <div className="space-y-4">
+      <section className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {DASHBOARD_TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? 'border-slate-800 bg-slate-800 text-white'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {['市场热点', '多维对比'].includes(activeTab) && (
       <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
@@ -714,7 +736,7 @@ const MultiDimDashboard = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-stretch">
+        {activeTab === '市场热点' && (
           <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-slate-50/40 p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-800">1. 极速大盘风向标</div>
@@ -749,7 +771,9 @@ const MultiDimDashboard = () => {
               })}
             </div>
           </div>
+        )}
 
+        {activeTab === '多维对比' && (
           <div className="flex h-full flex-col rounded-lg border border-slate-200 bg-slate-50/40 p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-sm font-semibold text-gray-800">2. 主线同频占比</div>
@@ -794,9 +818,10 @@ const MultiDimDashboard = () => {
               <div className="mt-3 text-xs text-slate-500">过配方向：创新药 / 红利资产</div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50/40 p-4">
+        {activeTab === '多维对比' && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50/40 p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-semibold text-gray-800">3. 竞对重仓矩阵</div>
             <div className="text-xs text-gray-500">随当前维度联动变化，突出各机构第一重仓方向</div>
@@ -869,6 +894,7 @@ const MultiDimDashboard = () => {
             ))}
           </div>
         </div>
+        )}
 
         {detailCard && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4" onClick={() => setDetailCard('')}>
@@ -922,7 +948,9 @@ const MultiDimDashboard = () => {
           </div>
         )}
       </section>
+      )}
 
+      {activeTab === '多维对比' && (
       <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
@@ -1045,7 +1073,9 @@ const MultiDimDashboard = () => {
           </div>
         </div>
       </section>
+      )}
 
+      {activeTab === '行动建议' && (
       <section className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
@@ -1182,6 +1212,7 @@ const MultiDimDashboard = () => {
         </div>
 
       </section>
+      )}
     </div>
   );
 };
