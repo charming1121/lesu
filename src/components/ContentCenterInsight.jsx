@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import xiaohongshuLogo from '../../assets/渠道logo/小红书.png';
 import antWealthLogo from '../../assets/渠道logo/蚂蚁.png';
 import wechatLogo from '../../assets/渠道logo/微信.png';
@@ -161,17 +161,17 @@ const WEEKLY_TOPIC_PLAN = {
 };
 
 const TOPIC_HEAT_BY_PLATFORM = {
-  全平台: [
-    { topic: '黄金概念', count: 1280, growth: 62, share: 48 },
-    { topic: 'AI应用', count: 1215, growth: 58, share: 47 },
-    { topic: '创新药', count: 1098, growth: 47, share: 44 },
-    { topic: 'CPO/光模块', count: 1032, growth: 43, share: 42 },
-    { topic: '液冷服务器', count: 944, growth: 39, share: 38 },
-    { topic: '红利资产', count: 886, growth: 22, share: 36 },
-    { topic: '半导体设备', count: 852, growth: 34, share: 34 },
-    { topic: '铜缆高速连接', count: 801, growth: 31, share: 32 },
-    { topic: '光纤光缆', count: 766, growth: 28, share: 31 },
-    { topic: '消费复苏', count: 642, growth: 17, share: 26 },
+  鍏ㄥ钩鍙? [
+    { topic: '榛勯噾姒傚康', count: 1280, growth: 62, share: 48 },
+    { topic: 'AI搴旂敤', count: 1215, growth: 58, share: 47 },
+    { topic: '鍒涙柊鑽?, count: 1098, growth: 47, share: 44 },
+    { topic: 'CPO/鍏夋ā鍧?, count: 1032, growth: 43, share: 42 },
+    { topic: '娑插喎鏈嶅姟鍣?, count: 944, growth: 39, share: 38 },
+    { topic: '绾㈠埄璧勪骇', count: 886, growth: 22, share: 36 },
+    { topic: '鍗婂浣撹澶?, count: 852, growth: 34, share: 34 },
+    { topic: '閾滅紗楂橀€熻繛鎺?, count: 801, growth: 31, share: 32 },
+    { topic: '鍏夌氦鍏夌紗', count: 766, growth: 28, share: 31 },
+    { topic: '娑堣垂澶嶈嫃', count: 642, growth: 17, share: 26 },
   ],
   小红书: [
     { topic: 'AI应用', count: 486, growth: 71, share: 49 },
@@ -245,11 +245,11 @@ const TOPIC_PRODUCT_DETAILS = {
       heat: 95,
       heatLabel: '高热度',
       platformMix: [
-        { name: '蚂蚁财富号', value: 36 },
-        { name: '微信公众号', value: 27 },
-        { name: '雪球', value: 21 },
-        { name: '抖音', value: 9 },
-        { name: '小红书', value: 7 },
+        { name: '铓傝殎璐㈠瘜鍙?, value: 36 },
+        { name: '寰俊鍏紬鍙?, value: 27 },
+        { name: '闆悆', value: 21 },
+        { name: '鎶栭煶', value: 9 },
+        { name: '灏忕孩涔?, value: 7 },
       ],
     },
     {
@@ -354,11 +354,11 @@ const TOPIC_PRODUCT_DETAILS = {
       heat: 86,
       heatLabel: '中高热度',
       platformMix: [
-        { name: '小红书', value: 28 },
-        { name: '微信公众号', value: 27 },
-        { name: '蚂蚁财富号', value: 18 },
-        { name: '抖音', value: 16 },
-        { name: '雪球', value: 11 },
+        { name: '灏忕孩涔?, value: 28 },
+        { name: '寰俊鍏紬鍙?, value: 27 },
+        { name: '铓傝殎璐㈠瘜鍙?, value: 18 },
+        { name: '鎶栭煶', value: 16 },
+        { name: '闆悆', value: 11 },
       ],
     },
     {
