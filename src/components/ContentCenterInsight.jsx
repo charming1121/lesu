@@ -1,22 +1,29 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import xiaohongshuLogo from '../../assets/渠道logo/小红书.png';
 import antWealthLogo from '../../assets/渠道logo/蚂蚁.png';
 import wechatLogo from '../../assets/渠道logo/微信.png';
 import xueqiuLogo from '../../assets/渠道logo/雪球.png';
 import douyinLogo from '../../assets/渠道logo/抖音.png';
 import {
-  TOPIC_SURGE_ALERTS,
-  NEW_EMERGING_TOPICS,
-  INSTITUTION_ALIGNMENT_CHANGES,
-  PLATFORM_INSTITUTION_SHIFTS,
   INSTITUTION_RESOURCE_FOCUS,
-  VIRAL_POSTS,
+  SHELF_EXPOSURE_PRODUCT_LIST,
+  ETF_EXPOSURE_COUNT_LIST,
+  JOINT_OPERATION_SHELF_LIST,
 } from '../data/contentMutationData';
+import { ANOMALY_KPI, ANOMALY_TIMELINE } from '../data/contentAnomalyStatic';
+import { MULTI_CHANNEL_PRODUCT_HEAT_STATIC } from '../data/multiChannelProductHeatStatic';
+import { MARKET_TOPIC_DETAILS, MARKET_TOPIC_HEAT_BY_PLATFORM } from '../data/topicHeatAnalysisStatic';
+import { VIRAL_POSTS } from '../data/viralPostsWallStatic';
 
 const PAGE_TABS = ['市场热点', '多维对比', '内容异动'];
-const PLATFORM_TABS = ['全平台', '小红书', '蚂蚁财富号', '微信公众号', '雪球', '抖音'];
+const PLATFORM_TABS = ['全平台', '小红书', '蚂蚁财富号', '微信公众号', '雪球'];
 const RANKING_LIST_HEIGHT = 'h-[392px]';
 const DETAIL_CHANNEL_TABS = PLATFORM_TABS.slice(1);
+const HIDDEN_PLATFORMS = new Set(['抖音']);
+const INSTITUTION_PAGE_SIZE = 6;
+const PRODUCT_PAGE_SIZE = 4;
+const MULTI_CHANNEL_PAGE_SIZE = 8;
+const BENCHMARK_INSTITUTION = '华夏基金';
 
 const TOPIC_SUMMARY = {
   黄金概念: '受避险情绪与资产配置需求共振影响，黄金相关内容持续走强，讨论集中在ETF配置、美元利率与大宗商品联动。',
@@ -161,17 +168,17 @@ const WEEKLY_TOPIC_PLAN = {
 };
 
 const TOPIC_HEAT_BY_PLATFORM = {
-  鍏ㄥ钩鍙? [
-    { topic: '榛勯噾姒傚康', count: 1280, growth: 62, share: 48 },
-    { topic: 'AI搴旂敤', count: 1215, growth: 58, share: 47 },
-    { topic: '鍒涙柊鑽?, count: 1098, growth: 47, share: 44 },
-    { topic: 'CPO/鍏夋ā鍧?, count: 1032, growth: 43, share: 42 },
-    { topic: '娑插喎鏈嶅姟鍣?, count: 944, growth: 39, share: 38 },
-    { topic: '绾㈠埄璧勪骇', count: 886, growth: 22, share: 36 },
-    { topic: '鍗婂浣撹澶?, count: 852, growth: 34, share: 34 },
-    { topic: '閾滅紗楂橀€熻繛鎺?, count: 801, growth: 31, share: 32 },
-    { topic: '鍏夌氦鍏夌紗', count: 766, growth: 28, share: 31 },
-    { topic: '娑堣垂澶嶈嫃', count: 642, growth: 17, share: 26 },
+  全平台: [
+    { topic: '黄金概念', count: 1280, growth: 62, share: 48 },
+    { topic: 'AI应用', count: 1215, growth: 58, share: 47 },
+    { topic: '创新药', count: 1098, growth: 47, share: 44 },
+    { topic: 'CPO/光模块', count: 1032, growth: 43, share: 42 },
+    { topic: '液冷服务器', count: 944, growth: 39, share: 38 },
+    { topic: '红利资产', count: 886, growth: 22, share: 36 },
+    { topic: '半导体设备', count: 852, growth: 34, share: 34 },
+    { topic: '铜缆高速连接', count: 801, growth: 31, share: 32 },
+    { topic: '光纤光缆', count: 766, growth: 28, share: 31 },
+    { topic: '消费复苏', count: 642, growth: 17, share: 26 },
   ],
   小红书: [
     { topic: 'AI应用', count: 486, growth: 71, share: 49 },
@@ -245,11 +252,11 @@ const TOPIC_PRODUCT_DETAILS = {
       heat: 95,
       heatLabel: '高热度',
       platformMix: [
-        { name: '铓傝殎璐㈠瘜鍙?, value: 36 },
-        { name: '寰俊鍏紬鍙?, value: 27 },
-        { name: '闆悆', value: 21 },
-        { name: '鎶栭煶', value: 9 },
-        { name: '灏忕孩涔?, value: 7 },
+        { name: '蚂蚁财富号', value: 36 },
+        { name: '微信公众号', value: 27 },
+        { name: '雪球', value: 21 },
+        { name: '抖音', value: 9 },
+        { name: '小红书', value: 7 },
       ],
     },
     {
@@ -354,11 +361,11 @@ const TOPIC_PRODUCT_DETAILS = {
       heat: 86,
       heatLabel: '中高热度',
       platformMix: [
-        { name: '灏忕孩涔?, value: 28 },
-        { name: '寰俊鍏紬鍙?, value: 27 },
-        { name: '铓傝殎璐㈠瘜鍙?, value: 18 },
-        { name: '鎶栭煶', value: 16 },
-        { name: '闆悆', value: 11 },
+        { name: '小红书', value: 28 },
+        { name: '微信公众号', value: 27 },
+        { name: '蚂蚁财富号', value: 18 },
+        { name: '抖音', value: 16 },
+        { name: '雪球', value: 11 },
       ],
     },
     {
@@ -708,50 +715,25 @@ const TOPIC_PRODUCT_DETAILS = {
   ],
 };
 
-const CONTENT_FORMAT_DISTRIBUTION = {
-  全平台: [
-    { topic: '黄金概念', image: 62, video: 28, text: 10, bestFormat: '多图' },
-    { topic: 'AI应用', image: 31, video: 56, text: 13, bestFormat: '视频' },
-    { topic: '创新药', image: 54, video: 18, text: 28, bestFormat: '多图' },
-    { topic: 'CPO/光模块', image: 38, video: 44, text: 18, bestFormat: '视频' },
-    { topic: '液冷服务器', image: 42, video: 36, text: 22, bestFormat: '多图' },
-  ],
-  小红书: [
-    { topic: 'AI应用', image: 44, video: 43, text: 13, bestFormat: '多图' },
-    { topic: '创新药', image: 58, video: 16, text: 26, bestFormat: '多图' },
-    { topic: '黄金概念', image: 63, video: 23, text: 14, bestFormat: '多图' },
-    { topic: 'CPO/光模块', image: 35, video: 49, text: 16, bestFormat: '视频' },
-    { topic: '液冷服务器', image: 47, video: 31, text: 22, bestFormat: '多图' },
-  ],
-  蚂蚁财富号: [
-    { topic: '黄金概念', image: 21, video: 12, text: 67, bestFormat: '纯文' },
-    { topic: '红利资产', image: 28, video: 9, text: 63, bestFormat: '纯文' },
-    { topic: '创新药', image: 34, video: 14, text: 52, bestFormat: '纯文' },
-    { topic: 'AI应用', image: 25, video: 17, text: 58, bestFormat: '纯文' },
-    { topic: '半导体设备', image: 29, video: 18, text: 53, bestFormat: '纯文' },
-  ],
-  微信公众号: [
-    { topic: 'AI应用', image: 36, video: 18, text: 46, bestFormat: '纯文' },
-    { topic: 'CPO/光模块', image: 33, video: 21, text: 46, bestFormat: '纯文' },
-    { topic: '液冷服务器', image: 41, video: 14, text: 45, bestFormat: '纯文' },
-    { topic: '黄金概念', image: 48, video: 9, text: 43, bestFormat: '多图' },
-    { topic: '创新药', image: 39, video: 12, text: 49, bestFormat: '纯文' },
-  ],
-  雪球: [
-    { topic: '黄金概念', image: 18, video: 8, text: 74, bestFormat: '纯文' },
-    { topic: '红利资产', image: 24, video: 7, text: 69, bestFormat: '纯文' },
-    { topic: '半导体设备', image: 27, video: 15, text: 58, bestFormat: '纯文' },
-    { topic: 'AI应用', image: 22, video: 19, text: 59, bestFormat: '纯文' },
-    { topic: '有色金属', image: 26, video: 11, text: 63, bestFormat: '纯文' },
-  ],
-  抖音: [
-    { topic: 'AI应用', image: 19, video: 68, text: 13, bestFormat: '视频' },
-    { topic: '黄金概念', image: 24, video: 61, text: 15, bestFormat: '视频' },
-    { topic: '创新药', image: 28, video: 54, text: 18, bestFormat: '视频' },
-    { topic: '消费复苏', image: 32, video: 49, text: 19, bestFormat: '视频' },
-    { topic: '机器人', image: 26, video: 58, text: 16, bestFormat: '视频' },
-  ],
-};
+const CHANNEL_FORMAT_DISTRIBUTION_STATIC = [
+  // 来源：assets/静态数据/内容形式分布.xlsx
+  // 口径（按表头对齐）：
+  // image/video/text => 本周占比（按内容载体聚合到渠道）
+  // contentCount => 本周平台总数
+  // heatCount => 本周总热度
+  // countChange => 数量变化（本周平台总数 - 上周平台总数）
+  // heatChange => 热度变化（本周总热度 - 上周总热度）
+  { channel: '蚂蚁财富号', image: 100, video: 0, text: 0, bestFormat: '多图', contentCount: 122, heatCount: 308, countChange: '-19', heatChange: '-192' },
+  { channel: '微信公众号', image: 100, video: 0, text: 0, bestFormat: '多图', contentCount: 541, heatCount: 8666, countChange: '-28', heatChange: '+714' },
+  { channel: '小红书', image: 44.44, video: 34.44, text: 21.11, bestFormat: '多图', contentCount: 90, heatCount: 4864, countChange: '+3', heatChange: '-12240' },
+  { channel: '雪球', image: 22.94, video: 0, text: 45.02, bestFormat: '纯文', contentCount: 231, heatCount: 124, countChange: '-1', heatChange: '+25' },
+];
+
+const splitShelfDetailTags = (detail) =>
+  String(detail ?? '')
+    .split(/[，,、;；]/)
+    .map((token) => token.trim())
+    .filter(Boolean);
 
 const formatBadgeClass = {
   多图: 'bg-emerald-100 text-emerald-700',
@@ -772,22 +754,162 @@ const channelHeatLabel = (value) => {
   return '一般';
 };
 
-const buildFallbackFormatDistribution = (topic, index) => {
-  const seed = topic.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) + index * 17;
-  const image = 24 + (seed % 28);
-  const video = 18 + ((seed * 3) % 34);
-  const text = Math.max(8, 100 - image - video);
+const formatPercentDisplay = (value) => {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) {
+    return '0';
+  }
 
-  const maxValue = Math.max(image, video, text);
-  const bestFormat = maxValue === image ? '多图' : maxValue === video ? '视频' : '纯文';
+  return Number.isInteger(numeric) ? `${numeric}` : numeric.toFixed(1).replace(/\.0$/, '');
+};
 
-  return {
-    topic,
-    image,
-    video,
-    text,
-    bestFormat,
-  };
+const getTopicMetricLabel = (platform) => (platform === '全平台' ? '热度占比' : '渠道渗透率');
+
+const buildMarketTopicDescription = (detail) => {
+  if (!detail) {
+    return '';
+  }
+
+  const rankedPlatforms = DETAIL_CHANNEL_TABS.map((platform) => ({
+    platform,
+    count: Number(detail.platformBreakdown?.[platform]?.count || 0),
+    share: Number(detail.platformBreakdown?.[platform]?.share || 0),
+  }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  const dominantPlatform = rankedPlatforms[0];
+  const secondaryPlatform = rankedPlatforms[1];
+  const institutionCount = detail.institutions?.length || 0;
+  const productCount = detail.products?.length || 0;
+  const parts = [
+    `${detail.topic}近 7 天全平台共监测到 ${detail.totalCount} 条相关内容，占整体话题的 ${formatPercentDisplay(detail.totalShare)}%。`,
+  ];
+
+  if (dominantPlatform) {
+    let platformSentence = `${dominantPlatform.platform}是当前最主要的承载渠道，内容数为 ${dominantPlatform.count}`;
+    if (secondaryPlatform) {
+      platformSentence += `，其次是${secondaryPlatform.platform}（${secondaryPlatform.count}条）`;
+    }
+    platformSentence += '。';
+    parts.push(platformSentence);
+  }
+
+  if (institutionCount > 0) {
+    parts.push(`当前共有 ${institutionCount} 家机构参与该话题，推品记录 ${productCount} 条。`);
+  }
+
+  return parts.join('');
+};
+
+const buildMarketTopicLifecycle = (detail) => {
+  if (!detail) {
+    return { progress: 50, stage: '上升期' };
+  }
+
+  const totalShare = Number(detail.totalShare || 0);
+  const maxPlatformShare = Math.max(
+    ...DETAIL_CHANNEL_TABS.map((platform) => Number(detail.platformBreakdown?.[platform]?.share || 0))
+  );
+  const institutionCount = detail.institutions?.length || 0;
+
+  if (totalShare >= 12 || maxPlatformShare >= 18 || institutionCount >= 20) {
+    return { progress: 68, stage: '高峰期' };
+  }
+
+  if (totalShare >= 7 || maxPlatformShare >= 10 || institutionCount >= 10) {
+    return { progress: 56, stage: '上升期' };
+  }
+
+  return { progress: 40, stage: '萌芽期' };
+};
+
+const getTopicRankBadgeClass = (index) => {
+  if (index === 0) {
+    return 'border-amber-200 bg-amber-50 text-amber-700';
+  }
+
+  if (index === 1) {
+    return 'border-slate-300 bg-slate-100 text-slate-700';
+  }
+
+  if (index === 2) {
+    return 'border-orange-200 bg-orange-50 text-orange-700';
+  }
+
+  return 'border-slate-200 bg-white text-slate-500';
+};
+
+const paginateItems = (items, currentPage, pageSize) => {
+  const startIndex = (currentPage - 1) * pageSize;
+  return items.slice(startIndex, startIndex + pageSize);
+};
+
+const CompactPagination = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const visiblePages = [];
+  const startPage = Math.max(1, currentPage - 1);
+  const endPage = Math.min(totalPages, startPage + 2);
+  const normalizedStartPage = Math.max(1, endPage - 2);
+
+  for (let page = normalizedStartPage; page <= endPage; page += 1) {
+    visiblePages.push(page);
+  }
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+      <div className="text-xs text-slate-500">
+        第 <span className="font-semibold text-slate-900">{currentPage}</span> / {totalPages} 页
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            currentPage === 1
+              ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          上一页
+        </button>
+
+        <div className="flex items-center gap-1.5">
+          {visiblePages.map((page) => (
+            <button
+              key={page}
+              type="button"
+              onClick={() => onPageChange(page)}
+              className={`h-8 min-w-[32px] rounded-full px-2 text-xs font-semibold transition-colors ${
+                page === currentPage
+                  ? 'bg-slate-900 text-white'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            currentPage === totalPages
+              ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+              : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          下一页
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const getFormatValueClass = (value, maxValue) =>
@@ -798,6 +920,7 @@ const getFormatValueClass = (value, maxValue) =>
 const parsePercentValue = (value) => Number(String(value || '0').replace('%', '').replace('+', ''));
 const parseWanValue = (value) => Number(String(value || '0').replace('万', ''));
 const sortArrow = (isActive, direction) => (isActive ? (direction === 'desc' ? '▼' : '▲') : '↕');
+const filterVisiblePlatforms = (platforms = []) => platforms.filter((platform) => !HIDDEN_PLATFORMS.has(platform));
 const PLATFORM_ICON_META = {
   小红书: { logo: xiaohongshuLogo },
   蚂蚁财富号: { logo: antWealthLogo },
@@ -846,7 +969,7 @@ const buildOwnProductOverview = (product) => {
 
   return {
     product: product.name,
-    institution: '广发基金',
+    institution: BENCHMARK_INSTITUTION,
     ratio: 33,
     count: product.platformContentCount,
     heat: product.contentHeat,
@@ -872,41 +995,106 @@ const buildFallbackChannelHeat = (topic, platform) => {
 const ContentCenterInsight = () => {
   const [activeTab, setActiveTab] = useState('市场热点');
   const [activePlatform, setActivePlatform] = useState('全平台');
+  const [shelfListTab, setShelfListTab] = useState('基金货架');
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedProductForCompetitors, setSelectedProductForCompetitors] = useState(null);
   const [competitorSortConfig, setCompetitorSortConfig] = useState({ key: 'monthlyGain', direction: 'desc' });
   const [isWeeklyPlanModalOpen, setIsWeeklyPlanModalOpen] = useState(false);
+  const [isMissingTopicModalOpen, setIsMissingTopicModalOpen] = useState(false);
+  const [isTopicCompareExpanded, setIsTopicCompareExpanded] = useState(false);
+  const [isHighAlignModalOpen, setIsHighAlignModalOpen] = useState(false);
+  const [viralWallPlatformTab, setViralWallPlatformTab] = useState('小红书');
+  const [institutionPage, setInstitutionPage] = useState(1);
+  const [productPage, setProductPage] = useState(1);
+  const [multiChannelProductPage, setMultiChannelProductPage] = useState(1);
 
-  const topicList = useMemo(() => TOPIC_HEAT_BY_PLATFORM[activePlatform] || [], [activePlatform]);
-  const contentFormatList = useMemo(
-    () =>
-      topicList.map((topicItem, index) => {
-        const matchedItem = (CONTENT_FORMAT_DISTRIBUTION[activePlatform] || []).find(
-          (formatItem) => formatItem.topic === topicItem.topic
-        );
-
-        return matchedItem || buildFallbackFormatDistribution(topicItem.topic, index);
-      }),
-    [activePlatform, topicList]
+  const viralPostsVisible = useMemo(
+    () => VIRAL_POSTS.filter((p) => !HIDDEN_PLATFORMS.has(p.platform)),
+    []
   );
+  const viralPlatformTabs = useMemo(() => {
+    const order = ['小红书', '蚂蚁财富号', '微信公众号', '雪球'];
+    const present = new Set(viralPostsVisible.map((p) => p.platform));
+    return order.filter((name) => present.has(name));
+  }, [viralPostsVisible]);
+  const selectedViralTab =
+    viralPlatformTabs.includes(viralWallPlatformTab) ? viralWallPlatformTab : viralPlatformTabs[0] ?? '';
+  const viralPostsForWall = useMemo(
+    () => viralPostsVisible.filter((p) => p.platform === selectedViralTab),
+    [viralPostsVisible, selectedViralTab]
+  );
+
+  const topicList = useMemo(
+    () => (MARKET_TOPIC_HEAT_BY_PLATFORM[activePlatform] || TOPIC_HEAT_BY_PLATFORM[activePlatform] || []).slice(0, 10),
+    [activePlatform]
+  );
+  const topicListMaxCount = useMemo(
+    () => Math.max(...topicList.map((item) => Number(item.count || 0)), 1),
+    [topicList]
+  );
+  const topicListMaxShare = useMemo(
+    () => Math.max(...topicList.map((item) => Number(item.share || 0)), 1),
+    [topicList]
+  );
+  const selectedTopicMarketDetail = useMemo(
+    () => (selectedTopic ? MARKET_TOPIC_DETAILS[selectedTopic] || null : null),
+    [selectedTopic]
+  );
+  const contentFormatList = useMemo(() => CHANNEL_FORMAT_DISTRIBUTION_STATIC, []);
   const contentProductHotList = useMemo(
-    () =>
-      INSTITUTION_RESOURCE_FOCUS.map((item) => {
-        const mainPushProduct = item.mainPush?.product || item.contentPush?.[0] || '--';
-        const mainPushCode = item.mainPush?.code || '--';
-        const investment = item.mainPush?.investment || 20;
-        const mainPushPlatforms = item.mainPush?.platforms || ['微信公众号'];
-        return {
-          product: mainPushProduct,
-          code: mainPushCode,
-          institution: item.institution,
-          platforms: mainPushPlatforms,
-          value: investment,
-          change: Math.max(6, Math.round(investment * 0.45)),
-        };
-      })
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 10),
+    () => {
+      const aggregatedMap = new Map();
+
+      Object.values(MARKET_TOPIC_DETAILS).forEach((detail) => {
+        (detail.products || []).forEach((product) => {
+          const code = String(product.code || '').trim();
+          const productName = String(product.product || '').trim();
+          const institution = String(product.institution || '').trim();
+
+          if (!productName || productName === institution) {
+            return;
+          }
+
+          // 以产品代码（有则用）或名称为键，跨机构累加出现次数
+          const key = code || productName;
+          const count = Number(product.count || 0);
+          const ratio = Number(product.ratio || 0);
+          const platforms = filterVisiblePlatforms((product.platformMix || []).map((item) => item.name).filter(Boolean));
+          const current = aggregatedMap.get(key);
+
+          if (!current) {
+            aggregatedMap.set(key, {
+              product: productName,
+              code,
+              institution,
+              topic: detail.topic,
+              platforms,
+              count,
+              ratio,
+              value: count,
+            });
+            return;
+          }
+
+          current.count += count;
+          current.ratio = Math.max(current.ratio, ratio);
+          current.platforms = Array.from(new Set([...current.platforms, ...platforms]));
+
+          if (count > current.value) {
+            current.value = count;
+            current.topic = detail.topic;
+            current.institution = institution;
+          }
+        });
+      });
+
+      return [...aggregatedMap.values()]
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          if (b.ratio !== a.ratio) return b.ratio - a.ratio;
+          return a.product.localeCompare(b.product, 'zh-CN');
+        });
+    },
     []
   );
   const shelfProductHotList = useMemo(() => {
@@ -937,8 +1125,22 @@ const ContentCenterInsight = () => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 10);
   }, []);
+  const shelfExposureList = useMemo(() => {
+    const shelfTab = shelfListTab === '支付宝货架' ? '基金货架' : shelfListTab;
+    const source =
+      shelfTab === '联合运营'
+        ? JOINT_OPERATION_SHELF_LIST
+        : shelfTab === 'ETF曝光位'
+          ? ETF_EXPOSURE_COUNT_LIST
+          : SHELF_EXPOSURE_PRODUCT_LIST;
+    return source.map((item, index) => ({
+      ...item,
+      tags: splitShelfDetailTags(item.detail),
+      rowKey: `${shelfTab}-${index}-${item.name}`,
+    }));
+  }, [shelfListTab]);
 
-  const multiChannelProductHotList = useMemo(() => {
+  const multiChannelProductHotListLegacy = useMemo(() => {
     const rows = INSTITUTION_RESOURCE_FOCUS.map((item) => {
       const product = item.mainPush?.product || item.contentPush?.[0] || '--';
       const code = item.mainPush?.code || '--';
@@ -977,16 +1179,158 @@ const ContentCenterInsight = () => {
     return source.map((item) => ({ ...item }));
   }, []);
 
+  const multiChannelProductHotList = useMemo(() => {
+    const metricByCode = new Map(
+      MULTI_CHANNEL_PRODUCT_HEAT_STATIC.filter((item) => item.code).map((item) => [String(item.code).trim(), item])
+    );
+    const metricByName = new Map(MULTI_CHANNEL_PRODUCT_HEAT_STATIC.map((item) => [String(item.product || '').trim(), item]));
+
+    const formatWan = (value) => {
+      const numeric = Number(value || 0);
+      if (!numeric) return '-';
+      return numeric >= 10000 ? `${(numeric / 10000).toFixed(1)}万` : `${numeric}`;
+    };
+
+    const formatSigned = (value, suffix = '') => {
+      const numeric = Number(value || 0);
+      if (!numeric) return '-';
+      const sign = numeric > 0 ? '+' : '';
+      return `${sign}${numeric}${suffix}`;
+    };
+
+    const mergedMap = new Map();
+
+    const mergeVisibleProduct = (productName, productCode, institution, sourceLabel, sourceOrder) => {
+      const normalizedName = String(productName || '').trim();
+      const normalizedCode = productCode && productCode !== '--' ? String(productCode).trim() : '';
+
+      if (!normalizedName) {
+        return;
+      }
+
+      const matchedMetric = (normalizedCode ? metricByCode.get(normalizedCode) : null) || metricByName.get(normalizedName) || null;
+      const key = normalizedCode ? `code:${normalizedCode}` : `name:${normalizedName}`;
+      const existing = mergedMap.get(key);
+
+      if (existing) {
+        existing.sources = Array.from(new Set([...existing.sources, sourceLabel]));
+        existing.sourceOrder = Math.max(existing.sourceOrder, sourceOrder);
+        if ((!existing.code || existing.code === '--') && normalizedCode) {
+          existing.code = normalizedCode;
+        }
+        if ((!existing.institution || existing.institution === '--') && institution) {
+          existing.institution = institution;
+        }
+        if (!existing.metricMatched && matchedMetric) {
+          existing.metricMatched = true;
+          existing.latestWatchlistRaw = Number(matchedMetric.latestWatchlist || 0);
+          existing.recentWatchlistRaw = Number(matchedMetric.recentWatchlist || 0);
+          existing.holderCountRaw = Number(matchedMetric.holderCount || 0);
+          existing.holderWeeklyChangeRaw = Number(matchedMetric.holderWeeklyChange || 0);
+          existing.influencerHolderChangeRaw = Number(matchedMetric.influencerHolderChange || 0);
+          existing.influencerAmountChangeRaw = Number(matchedMetric.influencerAmountChange || 0);
+          existing.avgSipCountRaw = Number(matchedMetric.avgSipCount || 0);
+          existing.eastmoneyRankAppearRaw = Number(matchedMetric.eastmoneyRankAppear || 0);
+          existing.purchaseCountRaw = Number(matchedMetric.purchaseCount || 0);
+        }
+        return;
+      }
+
+      mergedMap.set(key, {
+        product: normalizedName,
+        code: normalizedCode || String(matchedMetric?.code || '').trim() || '--',
+        institution: institution || matchedMetric?.institution || '--',
+        sources: [sourceLabel],
+        sourceOrder,
+        metricMatched: Boolean(matchedMetric),
+        latestWatchlistRaw: Number(matchedMetric?.latestWatchlist || 0),
+        recentWatchlistRaw: Number(matchedMetric?.recentWatchlist || 0),
+        holderCountRaw: Number(matchedMetric?.holderCount || 0),
+        holderWeeklyChangeRaw: Number(matchedMetric?.holderWeeklyChange || 0),
+        influencerHolderChangeRaw: Number(matchedMetric?.influencerHolderChange || 0),
+        influencerAmountChangeRaw: Number(matchedMetric?.influencerAmountChange || 0),
+        avgSipCountRaw: Number(matchedMetric?.avgSipCount || 0),
+        eastmoneyRankAppearRaw: Number(matchedMetric?.eastmoneyRankAppear || 0),
+        purchaseCountRaw: Number(matchedMetric?.purchaseCount || 0),
+      });
+    };
+
+    contentProductHotList.forEach((item, index) => {
+      mergeVisibleProduct(item.product, item.code, item.institution, '内容推品', 200 - index * 5);
+    });
+
+    // 合并全部三个货架列表，不受 tab 限制
+    const allShelfItems = [
+      ...SHELF_EXPOSURE_PRODUCT_LIST,
+      ...ETF_EXPOSURE_COUNT_LIST,
+      ...JOINT_OPERATION_SHELF_LIST,
+    ];
+    allShelfItems.forEach((item, index) => {
+      mergeVisibleProduct(item.name, item.code, item.institution, '货架产品', 120 - index * 3);
+    });
+
+    return [...mergedMap.values()]
+      .sort((a, b) => {
+        if (b.latestWatchlistRaw !== a.latestWatchlistRaw) {
+          return b.latestWatchlistRaw - a.latestWatchlistRaw;
+        }
+        if (b.purchaseCountRaw !== a.purchaseCountRaw) {
+          return b.purchaseCountRaw - a.purchaseCountRaw;
+        }
+        if (b.sourceOrder !== a.sourceOrder) {
+          return b.sourceOrder - a.sourceOrder;
+        }
+        return a.product.localeCompare(b.product, 'zh-CN');
+      })
+      .map((item) => ({
+        ...item,
+        latestWatchlist: formatWan(item.latestWatchlistRaw),
+        recentWatchlist: formatSigned(item.recentWatchlistRaw),
+        holderCount: formatWan(item.holderCountRaw),
+        holderWeeklyChange: formatSigned(item.holderWeeklyChangeRaw),
+        influencerHolderChange: formatSigned(item.influencerHolderChangeRaw),
+        influencerAmountChange: formatSigned(item.influencerAmountChangeRaw),
+        avgSipCount: item.avgSipCountRaw ? `${item.avgSipCountRaw}` : '-',
+        eastmoneyRankAppear: item.eastmoneyRankAppearRaw ? `${item.eastmoneyRankAppearRaw}` : '-',
+        purchaseCount: formatWan(item.purchaseCountRaw),
+      }));
+  }, [contentProductHotList]);
+  const paginatedMultiChannelProductHotList = useMemo(
+    () => paginateItems(multiChannelProductHotList, multiChannelProductPage, MULTI_CHANNEL_PAGE_SIZE),
+    [multiChannelProductHotList, multiChannelProductPage]
+  );
+  const multiChannelProductTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(multiChannelProductHotList.length / MULTI_CHANNEL_PAGE_SIZE)),
+    [multiChannelProductHotList]
+  );
+
+  useEffect(() => {
+    setMultiChannelProductPage((currentPage) => Math.min(currentPage, multiChannelProductTotalPages));
+  }, [multiChannelProductTotalPages]);
+
   const modalProducts = useMemo(() => {
     if (!selectedTopic) {
       return [];
     }
+
+    if (selectedTopicMarketDetail) {
+      return selectedTopicMarketDetail.products || [];
+    }
+
     return TOPIC_PRODUCT_DETAILS[selectedTopic] || [];
-  }, [selectedTopic]);
+  }, [selectedTopic, selectedTopicMarketDetail]);
 
   const channelHeatList = useMemo(() => {
     if (!selectedTopic) {
       return [];
+    }
+
+    if (selectedTopicMarketDetail) {
+      return DETAIL_CHANNEL_TABS.map((platform) => ({
+        platform,
+        value: Number(selectedTopicMarketDetail.platformBreakdown?.[platform]?.share || 0),
+        count: Number(selectedTopicMarketDetail.platformBreakdown?.[platform]?.count || 0),
+      }));
     }
 
     return DETAIL_CHANNEL_TABS.map((platform) => {
@@ -994,14 +1338,19 @@ const ContentCenterInsight = () => {
       const matched = (TOPIC_HEAT_BY_PLATFORM[platform] || []).find((item) => item.topic === selectedTopic);
       return {
         platform,
+        count: Number(matched?.count || 0),
         value:
           profileValue ??
           Math.max(45, Math.min(92, (matched?.share ?? buildFallbackChannelHeat(selectedTopic, platform)) + (matched?.growth ?? 0) * 0.28)),
       };
     });
-  }, [selectedTopic]);
+  }, [selectedTopic, selectedTopicMarketDetail]);
 
   const institutionShareList = useMemo(() => {
+    if (selectedTopicMarketDetail) {
+      return selectedTopicMarketDetail.institutions || [];
+    }
+
     if (!modalProducts.length) {
       return [];
     }
@@ -1055,119 +1404,449 @@ const ContentCenterInsight = () => {
     }
 
     return [...baseList, ...generatedList].sort((a, b) => b.value - a.value);
-  }, [modalProducts]);
+  }, [modalProducts, selectedTopicMarketDetail]);
+  const paginatedInstitutionShareList = useMemo(
+    () => paginateItems(institutionShareList, institutionPage, INSTITUTION_PAGE_SIZE),
+    [institutionShareList, institutionPage]
+  );
+  const institutionTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(institutionShareList.length / INSTITUTION_PAGE_SIZE)),
+    [institutionShareList]
+  );
+  const paginatedModalProducts = useMemo(
+    () => paginateItems(modalProducts, productPage, PRODUCT_PAGE_SIZE),
+    [modalProducts, productPage]
+  );
+  const productTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(modalProducts.length / PRODUCT_PAGE_SIZE)),
+    [modalProducts]
+  );
 
   const topicCurrentStats = useMemo(() => {
     if (!selectedTopic) {
       return null;
     }
 
+    if (selectedTopicMarketDetail) {
+      const matched = (MARKET_TOPIC_HEAT_BY_PLATFORM[activePlatform] || []).find((item) => item.topic === selectedTopic);
+      if (matched) {
+        return matched;
+      }
+
+      const platformStats = selectedTopicMarketDetail.platformBreakdown?.[activePlatform];
+      return {
+        topic: selectedTopic,
+        count: activePlatform === '全平台' ? selectedTopicMarketDetail.totalCount : Number(platformStats?.count || 0),
+        share: activePlatform === '全平台' ? selectedTopicMarketDetail.totalShare : Number(platformStats?.share || 0),
+      };
+    }
+
     return (TOPIC_HEAT_BY_PLATFORM[activePlatform] || []).find((item) => item.topic === selectedTopic) || null;
-  }, [activePlatform, selectedTopic]);
+  }, [activePlatform, selectedTopic, selectedTopicMarketDetail]);
 
   const topicDescription = useMemo(() => {
     if (!selectedTopic) {
       return '';
     }
 
+    if (selectedTopicMarketDetail) {
+      return buildMarketTopicDescription(selectedTopicMarketDetail);
+    }
+
     return (
       TOPIC_SUMMARY[selectedTopic] ||
       `${selectedTopic}相关内容近期维持较高讨论度，机构内容主要围绕主题景气验证、资产配置逻辑与产品承接机会展开。`
     );
-  }, [selectedTopic]);
+  }, [selectedTopic, selectedTopicMarketDetail]);
 
   const topicLifecycle = useMemo(() => {
     if (!selectedTopic) {
       return { progress: 50, stage: '上升期' };
     }
 
+    if (selectedTopicMarketDetail) {
+      return buildMarketTopicLifecycle(selectedTopicMarketDetail);
+    }
+
     return TOPIC_LIFECYCLE[selectedTopic] || { progress: 52, stage: '上升期' };
-  }, [selectedTopic]);
+  }, [selectedTopic, selectedTopicMarketDetail]);
+
+  const benchmarkTopicCounts = useMemo(() => {
+    const counts = {};
+    Object.entries(MARKET_TOPIC_DETAILS).forEach(([topic, detail]) => {
+      const inst = detail.institutions.find((i) => i.institution === BENCHMARK_INSTITUTION);
+      if (inst) counts[topic] = inst.count;
+    });
+    return counts;
+  }, []);
+
+  const benchmarkProducts = useMemo(() => {
+    const seen = new Map();
+    Object.entries(MARKET_TOPIC_DETAILS).forEach(([topic, detail]) => {
+      detail.products.forEach((prod) => {
+        if (!prod.code || !prod.institution.includes(BENCHMARK_INSTITUTION)) return;
+        const key = prod.code;
+        if (!seen.has(key) || prod.count > seen.get(key).platformContentCount) {
+          const platforms = prod.platformMix.filter((m) => m.value > 0).map((m) => m.name);
+          seen.set(key, {
+            code: prod.code,
+            name: prod.product,
+            topic,
+            topicHeat: Math.round(detail.totalShare),
+            platforms,
+            platformContentCount: prod.count,
+            contentHeat: Math.min(99, Math.max(30, Math.round(prod.ratio * 5 + prod.count * 3))),
+          });
+        }
+      });
+    });
+    return [...seen.values()].sort((a, b) => b.platformContentCount - a.platformContentCount).slice(0, 6);
+  }, []);
 
   const topicCompareCards = useMemo(() => {
-    const marketTopTopics = TOPIC_HEAT_BY_PLATFORM['全平台'] || [];
-
-    return marketTopTopics
-      .map((item) => {
-        const platformCounts = DETAIL_CHANNEL_TABS.map((platform) => {
-          const matched = (TOPIC_HEAT_BY_PLATFORM[platform] || []).find((topicItem) => topicItem.topic === item.topic);
-          return matched?.count || 0;
-        });
-
-        const industryAverage = Math.round(
-          platformCounts.reduce((sum, value) => sum + value, 0) / DETAIL_CHANNEL_TABS.length
-        );
-        const selfCount = OWN_TOPIC_CONTENT_COUNTS[item.topic] || 0;
-        const gapRatio = industryAverage / Math.max(selfCount, 1);
-        const level = gapRatio >= 8 ? 'urgent' : gapRatio >= 4 ? 'potential' : 'blue';
-
-        return {
-          topic: item.topic,
-          industryAverage,
-          selfCount,
-          growth: item.growth,
-          gapRatio,
-          level,
-        };
+    // 以华夏基金实际有内容的所有话题为源
+    return Object.entries(benchmarkTopicCounts)
+      .filter(([, count]) => count > 0)
+      .map(([topic, selfCount]) => {
+        const detail = MARKET_TOPIC_DETAILS[topic];
+        if (!detail) return null;
+        // 行业平均 = 话题总内容数 / 参与该话题的机构数
+        const institutionCount = detail.institutions.length || 1;
+        const industryAverage = Math.round(detail.totalCount / institutionCount);
+        // gapRatio > 1 表示我方高于行业平均，< 1 表示尚有差距
+        const gapRatio = selfCount / Math.max(industryAverage, 1);
+        const level = gapRatio >= 1.5 ? 'blue' : gapRatio >= 0.8 ? 'potential' : 'urgent';
+        return { topic, industryAverage, selfCount, gapRatio, level };
       })
-      .sort((a, b) => b.gapRatio - a.gapRatio)
-      .slice(0, 8);
-  }, []);
+      .filter(Boolean)
+      .sort((a, b) => b.selfCount - a.selfCount);
+  }, [benchmarkTopicCounts]);
 
   const topicCompareSummary = useMemo(() => {
-    const marketTopTopics = (TOPIC_HEAT_BY_PLATFORM['全平台'] || []).slice(0, 8).map((item) => item.topic);
-    const ownTopTopics = Object.entries(OWN_TOPIC_CONTENT_COUNTS)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([topic]) => topic);
-    const overlapCount = marketTopTopics.filter((topic) => ownTopTopics.includes(topic)).length;
-    const mainlineSimilarity = Math.round((overlapCount / Math.max(marketTopTopics.length, 1)) * 100);
+    const allMarketTopics = Object.keys(MARKET_TOPIC_DETAILS);
+    const totalMarketTopics = allMarketTopics.length;
+    // 机构有内容的话题数
+    const coveredCount = allMarketTopics.filter((topic) => (benchmarkTopicCounts[topic] || 0) > 0).length;
+    // 主线相似度 = 机构覆盖话题数 / 市场话题总数
+    const mainlineSimilarity = Math.round((coveredCount / Math.max(totalMarketTopics, 1)) * 100);
+    // 缺失热点 = 市场话题总数 - 机构有内容的话题数
+    const missingHotTopics = totalMarketTopics - coveredCount;
 
-    const fullCompareList = (TOPIC_HEAT_BY_PLATFORM['全平台'] || []).map((item) => {
-      const platformCounts = DETAIL_CHANNEL_TABS.map((platform) => {
-        const matched = (TOPIC_HEAT_BY_PLATFORM[platform] || []).find((topicItem) => topicItem.topic === item.topic);
-        return matched?.count || 0;
-      });
-      const industryAverage = Math.round(platformCounts.reduce((sum, value) => sum + value, 0) / DETAIL_CHANNEL_TABS.length);
-      const selfCount = OWN_TOPIC_CONTENT_COUNTS[item.topic] || 0;
-      const deviation = Math.abs(industryAverage - selfCount) / Math.max(industryAverage, 1);
-      return { topic: item.topic, industryAverage, selfCount, deviation };
+    // 平均偏离：跨所有话题计算 |selfCount - industryAverage| / industryAverage 的均值
+    const deviationList = allMarketTopics.map((topic) => {
+      const detail = MARKET_TOPIC_DETAILS[topic];
+      const institutionCount = detail.institutions.length || 1;
+      const industryAverage = detail.totalCount / institutionCount;
+      const selfCount = benchmarkTopicCounts[topic] || 0;
+      return Math.min(1, Math.abs(industryAverage - selfCount) / Math.max(industryAverage, 1));
     });
-
     const averageDeviation = Math.round(
-      (fullCompareList.reduce((sum, item) => sum + item.deviation, 0) / Math.max(fullCompareList.length, 1)) * 100
+      (deviationList.reduce((sum, v) => sum + v, 0) / Math.max(deviationList.length, 1)) * 100
     );
-    const missingHotTopics = fullCompareList.filter((item) => item.selfCount <= item.industryAverage * 0.2).length;
 
-    return {
-      mainlineSimilarity,
-      averageDeviation,
-      missingHotTopics,
-    };
-  }, []);
+    return { mainlineSimilarity, averageDeviation, missingHotTopics };
+  }, [benchmarkTopicCounts]);
 
-  const channelCompareCards = useMemo(() => {
-    const ranked = [...OWN_CHANNEL_COMPARE].sort((a, b) => b.current - a.current);
-    const topPlatforms = ranked.slice(0, 2).map((item) => item.platform);
-    const maxCurrent = Math.max(...ranked.map((item) => item.current), 1);
-
-    return OWN_CHANNEL_COMPARE.map((item) => {
-      const diff = item.current - item.previous;
-      return {
-        ...item,
-        diff,
-        maxCurrent,
-        isTop: topPlatforms.includes(item.platform),
-      };
+  const highAlignInstitutionList = useMemo(() => {
+    const allMarketTopics = Object.keys(MARKET_TOPIC_DETAILS);
+    const totalMarketTopics = allMarketTopics.length;
+    // 聚合每个机构覆盖的话题数
+    const instCoverage = {};
+    allMarketTopics.forEach((topic) => {
+      const detail = MARKET_TOPIC_DETAILS[topic];
+      (detail.institutions || []).forEach((inst) => {
+        if ((inst.count || 0) > 0) {
+          if (!instCoverage[inst.institution]) instCoverage[inst.institution] = { covered: 0, topics: [] };
+          instCoverage[inst.institution].covered += 1;
+          instCoverage[inst.institution].topics.push({ topic, count: inst.count });
+        }
+      });
     });
+    return Object.entries(instCoverage)
+      .map(([institution, { covered, topics }]) => ({
+        institution,
+        similarity: Math.round((covered / totalMarketTopics) * 100),
+        coveredTopics: covered,
+        topTopics: topics.sort((a, b) => b.count - a.count).slice(0, 5),
+      }))
+      .filter((item) => item.similarity > 70)
+      .sort((a, b) => b.similarity - a.similarity);
   }, []);
+
+  const missingTopicList = useMemo(() => {
+    return Object.entries(MARKET_TOPIC_DETAILS)
+      .filter(([topic]) => (benchmarkTopicCounts[topic] || 0) === 0)
+      .map(([topic, detail]) => {
+        const platformBreakdown = DETAIL_CHANNEL_TABS.map((platform) => ({
+          platform,
+          count: Number(detail.platformBreakdown?.[platform]?.count || 0),
+        }));
+        const topInstitutions = [...(detail.institutions || [])]
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+        return {
+          topic,
+          totalCount: detail.totalCount,
+          totalShare: detail.totalShare,
+          platformBreakdown,
+          topInstitutions,
+        };
+      })
+      .sort((a, b) => b.totalCount - a.totalCount);
+  }, [benchmarkTopicCounts]);
+
+  const channelCompareMatrixRows = useMemo(
+    () => [
+      {
+        institution: '易方达基金',
+        current: 132,
+        previous: 97,
+        tendency: '微信公众号',
+        breakdown: [
+          { name: '微信公众号', value: 53, colorClass: 'bg-emerald-500' },
+          { name: '雪球', value: 35, colorClass: 'bg-blue-500' },
+          { name: '蚂蚁财富号', value: 8, colorClass: 'bg-amber-400' },
+          { name: '小红书', value: 5, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '+36.1%',
+        shiftText: '雪球 +6.0pct',
+        shiftPositive: true,
+        summary: '仍以微信公众号为主，雪球协同放量，本周132条。',
+      },
+      {
+        institution: '华宝基金',
+        current: 115,
+        previous: 100,
+        tendency: '雪球',
+        breakdown: [
+          { name: '雪球', value: 76, colorClass: 'bg-blue-500' },
+          { name: '微信公众号', value: 24, colorClass: 'bg-emerald-500' },
+        ],
+        totalChange: '+15.0%',
+        shiftText: '微信公众号 +8.3pct',
+        shiftPositive: true,
+        summary: '内容重心偏向雪球，本周115条，适合热点型与交易型分发。',
+      },
+      {
+        institution: '华夏基金',
+        current: 101,
+        previous: 82,
+        tendency: '微信公众号+雪球',
+        breakdown: [
+          { name: '微信公众号', value: 44, colorClass: 'bg-emerald-500' },
+          { name: '雪球', value: 44, colorClass: 'bg-blue-500' },
+          { name: '蚂蚁财富号', value: 10, colorClass: 'bg-amber-400' },
+          { name: '小红书', value: 3, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '+23.2%',
+        shiftText: '雪球 +9.4pct',
+        shiftPositive: true,
+        summary: '微信公众号与雪球基本并行分发，本周101条，平台结构更均衡。',
+      },
+      {
+        institution: '工银瑞信基金',
+        current: 66,
+        previous: 41,
+        tendency: '微信公众号',
+        breakdown: [
+          { name: '微信公众号', value: 59, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 23, colorClass: 'bg-amber-400' },
+          { name: '雪球', value: 18, colorClass: 'bg-blue-500' },
+        ],
+        totalChange: '+61.0%',
+        shiftText: '微信公众号 -14.1pct',
+        shiftPositive: false,
+        summary: '主阵地在微信公众号，蚂蚁财富号承担了较强补充分发。',
+      },
+      {
+        institution: '鹏华基金',
+        current: 65,
+        previous: 30,
+        tendency: '雪球+小红书',
+        breakdown: [
+          { name: '雪球', value: 40, colorClass: 'bg-blue-500' },
+          { name: '小红书', value: 32, colorClass: 'bg-pink-500' },
+          { name: '微信公众号', value: 25, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 3, colorClass: 'bg-amber-400' },
+        ],
+        totalChange: '+116.7%',
+        shiftText: '雪球 +10.0pct',
+        shiftPositive: true,
+        summary: '雪球与小红书基本并行分发，本周65条，平台结构更均衡。',
+      },
+      {
+        institution: '富国基金',
+        current: 62,
+        previous: 44,
+        tendency: '微信公众号+雪球',
+        breakdown: [
+          { name: '微信公众号', value: 37, colorClass: 'bg-emerald-500' },
+          { name: '雪球', value: 35, colorClass: 'bg-blue-500' },
+          { name: '蚂蚁财富号', value: 19, colorClass: 'bg-amber-400' },
+          { name: '小红书', value: 8, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '+40.9%',
+        shiftText: '雪球 -14.5pct',
+        shiftPositive: false,
+        summary: '微信公众号与雪球基本并行分发，本周62条，平台结构更均衡。',
+      },
+      {
+        institution: '银华基金',
+        current: 52,
+        previous: 44,
+        tendency: '微信公众号',
+        breakdown: [
+          { name: '微信公众号', value: 56, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 27, colorClass: 'bg-amber-400' },
+          { name: '雪球', value: 10, colorClass: 'bg-blue-500' },
+          { name: '小红书', value: 8, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '+18.2%',
+        shiftText: '蚂蚁财富号 +8.7pct',
+        shiftPositive: true,
+        summary: '主阵地在微信公众号，蚂蚁财富号承担了较强补充分发。',
+      },
+      {
+        institution: '南方基金',
+        current: 51,
+        previous: 37,
+        tendency: '微信公众号',
+        breakdown: [
+          { name: '微信公众号', value: 53, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 35, colorClass: 'bg-amber-400' },
+          { name: '小红书', value: 12, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '+37.8%',
+        shiftText: '微信公众号 -11.9pct',
+        shiftPositive: false,
+        summary: '主阵地在微信公众号，蚂蚁财富号承担了较强补充分发。',
+      },
+      {
+        institution: '国泰基金',
+        current: 43,
+        previous: 45,
+        tendency: '微信公众号+蚂蚁财富号',
+        breakdown: [
+          { name: '微信公众号', value: 40, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 35, colorClass: 'bg-amber-400' },
+          { name: '雪球', value: 16, colorClass: 'bg-blue-500' },
+          { name: '小红书', value: 9, colorClass: 'bg-pink-500' },
+        ],
+        totalChange: '-4.4%',
+        shiftText: '蚂蚁财富号 +10.4pct',
+        shiftPositive: true,
+        summary: '微信公众号与蚂蚁财富号基本并行分发，本周43条，平台结构更均衡。',
+      },
+      {
+        institution: '华安基金',
+        current: 42,
+        previous: 36,
+        tendency: '微信公众号',
+        breakdown: [
+          { name: '微信公众号', value: 76, colorClass: 'bg-emerald-500' },
+          { name: '蚂蚁财富号', value: 12, colorClass: 'bg-amber-400' },
+          { name: '小红书', value: 7, colorClass: 'bg-pink-500' },
+          { name: '雪球', value: 5, colorClass: 'bg-blue-500' },
+        ],
+        totalChange: '+16.7%',
+        shiftText: '雪球 +4.8pct',
+        shiftPositive: true,
+        summary: '以微信公众号为核心阵地，本周42条，平台投放较集中。',
+      },
+    ],
+    []
+  );
+
+  const contentMutationInstitutionRows = useMemo(
+    () =>
+      channelCompareMatrixRows.map((item) => ({
+        institution: item.institution,
+        alignmentScore: '',
+        alignedTopics: [],
+        action: `本周 ${item.current} 条，上周 ${item.previous} 条；${item.summary}`,
+        tendency: item.tendency,
+        totalChange: item.totalChange,
+        shiftText: item.shiftText,
+        shiftPositive: item.shiftPositive,
+      })),
+    [channelCompareMatrixRows]
+  );
+
+  const contentMutationResourceCards = useMemo(() => {
+    // 内容推品：name → count
+    const contentPushMap = new Map();
+    contentProductHotList.forEach((item) => {
+      if (!item.product || item.institution === '--') return;
+      const key = item.product;
+      if (!contentPushMap.has(key)) {
+        contentPushMap.set(key, { name: item.product, code: item.code || '--', institution: item.institution, count: item.count });
+      }
+    });
+
+    // 货架产品：name → sources[]
+    const shelfSources = [
+      { label: '基金货架', items: SHELF_EXPOSURE_PRODUCT_LIST, tone: 'amber' },
+      { label: 'ETF曝光位', items: ETF_EXPOSURE_COUNT_LIST, tone: 'violet' },
+      { label: '联合运营', items: JOINT_OPERATION_SHELF_LIST, tone: 'emerald' },
+    ];
+    const shelfMap = new Map();
+    shelfSources.forEach(({ label, items, tone }) => {
+      items.forEach((row) => {
+        if (!row.name) return;
+        if (!shelfMap.has(row.name)) shelfMap.set(row.name, { name: row.name, code: row.code, institution: row.institution, shelfSources: [] });
+        const entry = shelfMap.get(row.name);
+        if (!entry.shelfSources.find((s) => s.label === label)) {
+          entry.shelfSources.push({ label, count: row.count, tone });
+        }
+      });
+    });
+
+    // 重合：同时在内容推品 + 至少一处货架
+    const overlapProducts = [];
+    const contentOnlyProducts = [];
+    const shelfOnlyProducts = [];
+
+    contentPushMap.forEach((prod, name) => {
+      if (shelfMap.has(name)) {
+        overlapProducts.push({
+          name,
+          code: prod.code,
+          institution: prod.institution,
+          contentCount: prod.count,
+          shelfSources: shelfMap.get(name).shelfSources,
+        });
+      } else {
+        contentOnlyProducts.push(prod);
+      }
+    });
+    shelfMap.forEach((prod, name) => {
+      if (!contentPushMap.has(name)) {
+        shelfOnlyProducts.push({ ...prod, contentCount: null });
+      }
+    });
+
+    // 重合产品按内容数降序
+    overlapProducts.sort((a, b) => (b.contentCount || 0) - (a.contentCount || 0));
+    contentOnlyProducts.sort((a, b) => (b.count || 0) - (a.count || 0));
+    shelfOnlyProducts.sort((a, b) => a.name.localeCompare(b.name));
+
+    return { overlapProducts, contentOnlyProducts, shelfOnlyProducts };
+  }, [contentProductHotList]);
 
   const competitorModalList = useMemo(() => {
     if (!selectedProductForCompetitors) {
       return [];
     }
 
-    const topicProducts = TOPIC_PRODUCT_DETAILS[selectedProductForCompetitors.topic] || [];
+    const rawProducts = MARKET_TOPIC_DETAILS[selectedProductForCompetitors.topic]?.products || [];
+    const topicProducts = rawProducts.map((prod) => {
+      const heatScore = Math.min(99, Math.max(20, Math.round(prod.ratio * 5 + prod.count * 3)));
+      return {
+        ...prod,
+        heat: heatScore,
+        heatLabel: heatScore >= 80 ? '高热度' : heatScore >= 60 ? '中高热度' : '中热度',
+      };
+    });
     const mappedList = topicProducts.map((detail, index) => ({
       ...buildCompetitorOverview(detail, index),
       isOwn: detail.product === selectedProductForCompetitors.name,
@@ -1220,15 +1899,7 @@ const ContentCenterInsight = () => {
             </button>
           ))}
           </div>
-          {(activeTab === '市场热点' || activeTab === '多维对比' || activeTab === '内容异动') && (
-            <button
-              type="button"
-              onClick={() => setIsWeeklyPlanModalOpen(true)}
-              className="rounded-full border border-slate-800 bg-slate-800 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-            >
-              生成本周选题计划
-            </button>
-          )}
+          {/* 生成选题计划按钮已隐藏 */}
         </div>
       </section>
 
@@ -1239,7 +1910,7 @@ const ContentCenterInsight = () => {
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">话题热度榜</h3>
-                  <p className="mt-1 text-xs text-slate-500">展示前 10 个话题的内容数量，并支持弹窗查看当前平台下的话题详情</p>
+                  <p className="mt-1 text-xs text-slate-500">市场全量 {Object.keys(MARKET_TOPIC_DETAILS).length} 个话题，展示当前平台 Top 10（全平台 {(MARKET_TOPIC_HEAT_BY_PLATFORM['全平台'] || []).length} 个话题）</p>
                 </div>
               </div>
 
@@ -1263,35 +1934,90 @@ const ContentCenterInsight = () => {
                 ))}
               </div>
 
-              <div className={`${RANKING_LIST_HEIGHT} space-y-3 overflow-y-auto pr-1`}>
+              <div className={`${RANKING_LIST_HEIGHT} space-y-2.5 overflow-y-auto pr-1`}>
                 {topicList.map((item, index) => (
-                  <div key={`${activePlatform}-${item.topic}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-                    <div className="flex items-start justify-between gap-3">
+                  <div
+                    key={`${activePlatform}-${item.topic}`}
+                    className={`rounded-xl border bg-white px-3 py-2.5 transition-shadow hover:shadow-sm ${
+                      index < 3 ? 'border-slate-300 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.45)]' : 'border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2.5">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold text-slate-600">
+                          <span
+                            className={`inline-flex h-6 min-w-[24px] items-center justify-center rounded-full border px-1.5 text-[11px] font-semibold ${getTopicRankBadgeClass(index)}`}
+                          >
                             {index + 1}
                           </span>
                           <span className="truncate text-sm font-semibold text-slate-900">{item.topic}</span>
-                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                            热度占比 {item.share}%
+                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                            {getTopicMetricLabel(activePlatform)} {formatPercentDisplay(item.share)}%
                           </span>
                         </div>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                          <span>内容数量：{item.count}</span>
-                          <span>近 7 日：+{item.growth}%</span>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                            <span className="text-[11px] text-slate-400">内容数量</span>
+                            <span className="text-sm font-semibold text-slate-900">{item.count}</span>
+                          </div>
+                          <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                            <span className="text-[11px] text-slate-400">{getTopicMetricLabel(activePlatform)}</span>
+                            <span className="text-sm font-semibold text-slate-900">{formatPercentDisplay(item.share)}%</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500">
+                            <span>话题强度（相对榜首）</span>
+                            <span>内容数 {item.count}</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-slate-700 via-slate-600 to-sky-500"
+                              style={{ width: `${Math.max((Number(item.count || 0) / topicListMaxCount) * 100, 8)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                          {item.growth !== undefined && item.growth !== null && (
+                            <div className="inline-flex rounded-full bg-rose-50 px-2 py-0.5 font-medium text-rose-600">
+                              近 7 日 +{formatPercentDisplay(item.growth)}%
+                            </div>
+                          )}
+
+                          {activePlatform !== '全平台' && item.growth === undefined && item.growth !== 0 && (
+                            <div className="text-slate-400">
+                              当前平台按渗透率与内容数排序展示
+                            </div>
+                          )}
+
+                          {activePlatform === '全平台' && (
+                            <div className="text-slate-400">
+                              最高占比 {formatPercentDisplay(topicListMaxShare)}%
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedTopic(item.topic);
-                        }}
-                        className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                      >
-                        查看详情
-                      </button>
+                      <div className="flex shrink-0 flex-col items-end gap-2.5">
+                        <div className="rounded-2xl bg-slate-50 px-3 py-1.5 text-right">
+                          <div className="text-[11px] text-slate-400">排名强度</div>
+                          <div className="mt-0.5 text-base font-semibold text-slate-900">#{index + 1}</div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedTopic(item.topic);
+                            setInstitutionPage(1);
+                            setProductPage(1);
+                          }}
+                          className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                        >
+                          查看详情
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1302,20 +2028,18 @@ const ContentCenterInsight = () => {
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900">内容形式分布</h3>
-                  <p className="mt-1 text-xs text-slate-500">根据左侧平台 tab 联动，展示近 7 日各话题的素材类型占比</p>
                 </div>
-                <div className="shrink-0 text-xs font-medium text-slate-500">近 7 天 · {activePlatform}</div>
+                <div className="shrink-0 text-xs font-medium text-slate-500">近 7 天 · 渠道维度</div>
               </div>
 
-              <div className="rounded-lg border border-slate-200 bg-white">
-                <div className="h-[392px] overflow-y-auto">
-                  <table className="min-w-full text-left text-sm">
+              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                  <table className="w-max min-w-[760px] text-left text-sm">
                     <thead className="bg-slate-50 text-slate-500">
                       <tr>
-                        <th className="px-4 py-3 font-medium">话题</th>
-                        <th className="px-4 py-3 font-medium">多图</th>
-                        <th className="px-4 py-3 font-medium">视频</th>
-                        <th className="px-4 py-3 font-medium">纯文</th>
+                        <th className="w-[260px] min-w-[260px] px-4 py-3 font-medium">渠道</th>
+                        <th className="w-[88px] px-2 py-3 font-medium">多图</th>
+                        <th className="w-[88px] px-2 py-3 font-medium">视频</th>
+                        <th className="w-[88px] px-2 py-3 font-medium">纯文</th>
                         <th className="px-4 py-3 font-medium">最佳形式</th>
                       </tr>
                     </thead>
@@ -1324,20 +2048,49 @@ const ContentCenterInsight = () => {
                         const rowMax = Math.max(item.image, item.video, item.text);
 
                         return (
-                        <tr key={`${activePlatform}-${item.topic}`} className="border-t border-slate-200">
-                          <td className="px-4 py-3 font-semibold text-slate-900">{item.topic}</td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex min-w-[54px] justify-center rounded-md px-2 py-1 ${getFormatValueClass(item.image, rowMax)}`}>
+                        <tr key={item.channel} className="border-t border-slate-200">
+                          <td className="w-[260px] min-w-[260px] px-4 py-3 font-semibold text-slate-900">
+                            <div className="flex flex-col gap-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                                <span
+                                  className="inline-flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
+                                  title={item.channel}
+                                  aria-label={item.channel}
+                                >
+                                  {PLATFORM_ICON_META[item.channel]?.logo ? (
+                                    <img src={PLATFORM_ICON_META[item.channel].logo} alt={item.channel} className="h-full w-full object-cover" />
+                                  ) : (
+                                    <span className="text-[9px] text-slate-400">-</span>
+                                  )}
+                                </span>
+                                  <span>{item.channel}</span>
+                                </span>
+                              </div>
+                              <div className="whitespace-nowrap text-[13px] font-semibold">
+                                <span className="text-slate-500">内容数量 </span>
+                                <span className="text-sky-700">{item.contentCount}</span>
+                                <span className="text-slate-400"> · </span>
+                                <span className="text-slate-500">热度 </span>
+                                <span className="text-rose-700">{item.heatCount}</span>
+                              </div>
+                              <div className="whitespace-nowrap text-[12px] font-medium text-slate-600">
+                                较上周数量变化 {item.countChange} · 热度变化 {item.heatChange}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-2 py-3">
+                            <span className={`inline-flex min-w-[46px] justify-center rounded-md px-1.5 py-1 ${getFormatValueClass(item.image, rowMax)}`}>
                               {item.image}%
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex min-w-[54px] justify-center rounded-md px-2 py-1 ${getFormatValueClass(item.video, rowMax)}`}>
+                          <td className="px-2 py-3">
+                            <span className={`inline-flex min-w-[46px] justify-center rounded-md px-1.5 py-1 ${getFormatValueClass(item.video, rowMax)}`}>
                               {item.video}%
                             </span>
                           </td>
-                          <td className="px-4 py-3">
-                            <span className={`inline-flex min-w-[54px] justify-center rounded-md px-2 py-1 ${getFormatValueClass(item.text, rowMax)}`}>
+                          <td className="px-2 py-3">
+                            <span className={`inline-flex min-w-[46px] justify-center rounded-md px-1.5 py-1 ${getFormatValueClass(item.text, rowMax)}`}>
                               {item.text}%
                             </span>
                           </td>
@@ -1355,7 +2108,6 @@ const ContentCenterInsight = () => {
                       })}
                     </tbody>
                   </table>
-                </div>
               </div>
             </div>
           </div>
@@ -1363,7 +2115,7 @@ const ContentCenterInsight = () => {
             <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-900">内容推品列表</div>
-                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">主推视图</div>
+                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">机构推品表</div>
               </div>
               <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
                 {contentProductHotList.map((item) => (
@@ -1372,7 +2124,7 @@ const ContentCenterInsight = () => {
                       <span className="inline-flex items-center gap-1.5 font-medium text-slate-900">
                         <span>{item.product}</span>
                         <span className="inline-flex items-center gap-1">
-                          {item.platforms.map((platform) => {
+                          {filterVisiblePlatforms(item.platforms).map((platform) => {
                             const logo = PLATFORM_ICON_META[platform]?.logo;
                             return (
                               <span
@@ -1391,13 +2143,17 @@ const ContentCenterInsight = () => {
                           })}
                         </span>
                       </span>
-                      <span className="text-sm text-rose-600">+{item.change}%</span>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-slate-900">{item.count}</div>
+                        <div className="text-[11px] text-slate-400">关联内容</div>
+                      </div>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       <span>基金代码 {item.code}</span>
                       <span>·</span>
                       <span>{item.institution}</span>
-                      <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">机构主推</span>
+                      <span className="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[11px] text-sky-700">主关联话题 {item.topic}</span>
+                      <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[11px] text-rose-700">推品占比 {formatPercentDisplay(item.ratio)}%</span>
                     </div>
                   </div>
                 ))}
@@ -1407,50 +2163,46 @@ const ContentCenterInsight = () => {
             <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-900">货架产品列表</div>
-                <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">曝光量视角</div>
+                <div className="flex items-center gap-2">
+                  {['基金货架', 'ETF曝光位', '联合运营'].map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setShelfListTab(tab)}
+                      className={`rounded-full px-2.5 py-1 text-xs ${
+                        shelfListTab === tab || (tab === '基金货架' && shelfListTab === '支付宝货架')
+                          ? 'bg-slate-800 text-white'
+                          : 'bg-slate-100 text-slate-600'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
-                {shelfProductHotList.map((item) => (
-                  <div key={`${item.product}-${item.institution}-shelf`} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 font-medium text-slate-900">
-                        <span>{item.product}</span>
-                        <span className="inline-flex items-center gap-1">
-                          {item.platforms.map((platform) => {
-                            const logo = PLATFORM_ICON_META[platform]?.logo;
-                            return (
-                              <span
-                                key={`${item.product}-${platform}-shelf`}
-                                className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
-                                title={platform}
-                                aria-label={platform}
-                              >
-                                {logo ? (
-                                  <img src={logo} alt={platform} className="h-full w-full object-cover" />
-                                ) : (
-                                  <span className="text-[9px] text-slate-400">-</span>
-                                )}
-                              </span>
-                            );
-                          })}
+                {shelfExposureList.map((item) => (
+                  <div key={item.rowKey} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <span className="inline-flex min-w-0 flex-1 items-baseline gap-2">
+                        <span className="text-sm font-medium text-slate-900">{item.name}</span>
+                        <span className="shrink-0 font-mono text-xs text-slate-500">{item.code}</span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+                        曝光次数 {item.count}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {item.tags.map((tag) => (
+                        <span
+                          key={`${item.rowKey}-${tag}`}
+                          className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700"
+                        >
+                          {tag}
                         </span>
-                      </span>
-                      <span className="inline-flex flex-wrap justify-end gap-1">
-                        {item.shelfNames.map((shelfName) => (
-                          <span
-                            key={`${item.product}-${shelfName}`}
-                            className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700"
-                          >
-                            {shelfName}
-                          </span>
-                        ))}
-                      </span>
+                      ))}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span>基金代码 {item.code}</span>
-                      <span>·</span>
-                      <span>{item.institution}</span>
-                    </div>
+                    <div className="mt-1 text-xs text-slate-500">{item.institution}</div>
                   </div>
                 ))}
               </div>
@@ -1459,34 +2211,51 @@ const ContentCenterInsight = () => {
 
           <article className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-sm font-semibold text-slate-900">多渠道产品热度列表</div>
-              <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">主推 · 多平台</div>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">多渠道产品热度列表</div>
+                <div className="mt-1 text-xs text-slate-500">部分数据为空的原因是平台披露仅以万为单位。</div>
+              </div>
+              <div className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">内容推品 + 货架并集</div>
             </div>
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="min-w-[1700px] text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500">
                   <tr>
-                    <th className="px-4 py-3 font-medium">产品名称</th>
-                    <th className="px-4 py-3 font-medium">代码</th>
+                    <th className="px-4 py-3 font-medium">基金名称</th>
+                    <th className="px-4 py-3 font-medium">基金代码</th>
                     <th className="px-4 py-3 font-medium">机构</th>
-                    <th className="px-4 py-3 font-medium">加自选人数</th>
-                    <th className="px-4 py-3 font-medium">近7日加自选人数</th>
-                    <th className="px-4 py-3 font-medium">持有人数</th>
-                    <th className="px-4 py-3 font-medium">近七日持有人数变化</th>
-                    <th className="px-4 py-3 font-medium">持仓达人人数变化</th>
-                    <th className="px-4 py-3 font-medium">达人实盘金额变化</th>
-                    <th className="px-4 py-3 font-medium">人均定投次数</th>
-                    <th className="px-4 py-3 font-medium">天天风向标榜单出现次数</th>
-                    <th className="px-4 py-3 font-medium">购买笔数</th>
+                    <th className="px-4 py-3 font-medium">当前自选</th>
+                    <th className="px-4 py-3 font-medium">周自选人数变化</th>
+                    <th className="px-4 py-3 font-medium">当前持有</th>
+                    <th className="px-4 py-3 font-medium">周持有人数变化</th>
+                    <th className="px-4 py-3 font-medium">周持仓达人数量变化</th>
+                    <th className="px-4 py-3 font-medium">周达人实盘金额变化</th>
+                    <th className="px-4 py-3 font-medium">周人均定投次数</th>
+                    <th className="px-4 py-3 font-medium">周出现在榜单的次数</th>
+                    <th className="px-4 py-3 font-medium">当日购买笔数</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {multiChannelProductHotList.map((row, index) => (
+                  {paginatedMultiChannelProductHotList.map((row, index) => (
                     <tr
                       key={`${row.product}-${row.institution}`}
                       className={`border-t border-slate-200 text-slate-800 transition hover:bg-sky-50/40 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
                     >
-                      <td className="px-4 py-3 font-medium text-slate-900">{row.product}</td>
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        <div>{row.product}</div>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {row.sources.map((source) => (
+                            <span
+                              key={`${row.product}-${source}`}
+                              className={`inline-flex rounded-full px-2 py-0.5 text-[11px] ${
+                                source === '内容推品' ? 'bg-sky-100 text-sky-700' : 'bg-amber-100 text-amber-700'
+                              }`}
+                            >
+                              {source}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-600">{row.code}</td>
                       <td className="px-4 py-3 text-slate-700">{row.institution}</td>
                       <td className="px-4 py-3 text-slate-700">{row.latestWatchlist}</td>
@@ -1503,6 +2272,12 @@ const ContentCenterInsight = () => {
                 </tbody>
               </table>
             </div>
+
+            <CompactPagination
+              currentPage={multiChannelProductPage}
+              totalPages={multiChannelProductTotalPages}
+              onPageChange={setMultiChannelProductPage}
+            />
           </article>
         </section>
       )}
@@ -1517,29 +2292,38 @@ const ContentCenterInsight = () => {
               </p>
             </div>
             <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              近 7 天 · 市场 vs 你们
+              近 7 天 · 全量 {Object.keys(MARKET_TOPIC_DETAILS).length} 个话题 · 市场 vs 华夏基金
             </div>
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-            <article className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">主线相似度</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{topicCompareSummary.mainlineSimilarity}%</div>
+            <article className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-5 shadow-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400">主线相似度</div>
+              <div className="mt-2 text-4xl font-bold tabular-nums text-slate-900">{topicCompareSummary.mainlineSimilarity}<span className="ml-0.5 text-2xl font-semibold text-slate-500">%</span></div>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">平均偏离</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{topicCompareSummary.averageDeviation}%</div>
+            <article className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-5 shadow-sm">
+              <div className="text-xs font-medium uppercase tracking-wide text-slate-400">平均偏离</div>
+              <div className="mt-2 text-4xl font-bold tabular-nums text-slate-900">{topicCompareSummary.averageDeviation}<span className="ml-0.5 text-2xl font-semibold text-slate-500">%</span></div>
             </article>
-            <article className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">缺失热点</div>
-              <div className="mt-1 text-2xl font-semibold text-slate-900">{topicCompareSummary.missingHotTopics}</div>
+            <article className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 px-4 py-5 shadow-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-400">缺失热点</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMissingTopicModalOpen(true)}
+                  className="rounded-full border border-slate-300 px-2 py-0.5 text-[11px] font-medium text-slate-500 transition-colors hover:border-slate-400 hover:bg-white"
+                >
+                  查看
+                </button>
+              </div>
+              <div className="mt-2 text-4xl font-bold tabular-nums text-rose-600">{topicCompareSummary.missingHotTopics}<span className="ml-1 text-sm font-medium text-slate-400">个话题</span></div>
             </article>
           </div>
 
           <div className="-mx-1 overflow-x-auto pb-2">
             <div className="flex min-w-max gap-3 px-1">
-            {topicCompareCards.map((item) => {
-              const compareMax = Math.max(item.industryAverage, 1);
+            {(isTopicCompareExpanded ? topicCompareCards : topicCompareCards.slice(0, 8)).map((item) => {
+              const compareMax = Math.max(item.industryAverage, item.selfCount, 1);
               const accentClass =
                 item.level === 'urgent'
                   ? 'before:bg-rose-500'
@@ -1557,18 +2341,14 @@ const ContentCenterInsight = () => {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h4 className="text-base font-semibold text-slate-900">{item.topic}</h4>
-                          <div className="text-sm text-slate-600">
-                            新增{' '}
-                            <span className={item.growth >= 0 ? 'text-rose-600' : 'text-emerald-600'}>
-                              {item.growth >= 0 ? '+' : ''}{item.growth}%
-                            </span>
-                          </div>
                         </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedTopic(item.topic);
+                          setInstitutionPage(1);
+                          setProductPage(1);
                         }}
                         className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50"
                       >
@@ -1579,7 +2359,7 @@ const ContentCenterInsight = () => {
                     <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2">
                       <div className="flex items-center justify-between text-[11px] text-slate-500">
                         <span>行业平均</span>
-                        <span>自家内容</span>
+                        <span className="font-medium text-indigo-600">{BENCHMARK_INSTITUTION}</span>
                       </div>
                       <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                         <div className="flex justify-end">
@@ -1610,6 +2390,18 @@ const ContentCenterInsight = () => {
                 </article>
               );
             })}
+            {topicCompareCards.length > 8 && (
+              <button
+                type="button"
+                onClick={() => setIsTopicCompareExpanded((v) => !v)}
+                className="flex w-[120px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-3 text-xs font-medium text-slate-500 transition-colors hover:border-slate-400 hover:bg-white"
+              >
+                <span className="text-lg leading-none">{isTopicCompareExpanded ? '◀' : '▶'}</span>
+                <span className="text-center leading-snug">
+                  {isTopicCompareExpanded ? '收起' : `展开全部\n${topicCompareCards.length} 个话题`}
+                </span>
+              </button>
+            )}
             </div>
           </div>
 
@@ -1618,57 +2410,108 @@ const ContentCenterInsight = () => {
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">渠道对比层</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  对比自家机构在五个平台近 7 日的总内容分布，并观察较上周的转变倾向与产出差异。
+                  从机构维度观察近 7 日的平台内容分布、主发渠道结构，以及较上周的平台倾向变化。
                 </p>
               </div>
               <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                近 7 天 · 自家渠道分布
+                近 7 天 · 机构平台结构
               </div>
             </div>
 
-            <div className="-mx-1 overflow-x-auto pb-2">
-              <div className="flex min-w-max gap-3 px-1">
-                {channelCompareCards.map((item) => {
-                  const diffText = item.diff >= 0 ? `较上周 +${item.diff}` : `较上周 ${item.diff}`;
-                  const cardClass = item.isTop
-                    ? 'border-slate-900 bg-slate-50'
-                    : 'border-slate-200 bg-white';
-                  const barClass = item.isTop ? 'bg-slate-900' : 'bg-slate-400';
+            <div className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="mb-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
 
-                  return (
-                    <article
-                      key={item.platform}
-                      className={`w-[220px] shrink-0 rounded-xl border p-4 shadow-sm ${cardClass}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-base font-semibold text-slate-900">{item.platform}</h4>
-                        {item.isTop && (
-                          <span className="inline-flex rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-medium text-white">
-                            TOP
-                          </span>
-                        )}
-                      </div>
+                <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-500">
+                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />微信公众号</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500" />雪球</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" />蚂蚁财富号</span>
+                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-pink-500" />小红书</span>
+                </div>
+              </div>
 
-                      <div className="mt-3">
-                        <div className="flex items-end justify-between gap-2">
-                          <div className="text-2xl font-semibold text-slate-900">{item.current}</div>
-                          <div className="text-xs text-slate-500">篇 / 近7日</div>
-                        </div>
-                        <div className="mt-2 h-2.5 rounded-full bg-slate-100">
-                          <div
-                            className={`h-2.5 rounded-full ${barClass}`}
-                            style={{ width: `${(item.current / item.maxCurrent) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 space-y-1.5 text-sm text-slate-600">
-                        <div>{diffText}</div>
-                        <div>{item.trend}</div>
-                      </div>
-                    </article>
-                  );
-                })}
+              <div className="max-h-[540px] overflow-auto rounded-2xl">
+                <table className="w-full table-fixed text-left text-[13px]">
+                  <thead className="bg-slate-50 text-[13px] text-slate-600">
+                    <tr>
+                      <th className="w-[160px] rounded-l-2xl px-4 py-3 font-medium">机构名称</th>
+                      <th className="w-[120px] px-4 py-3 font-medium">内容平台倾向</th>
+                      <th className="w-[300px] px-4 py-3 font-medium">本周内容分布占比</th>
+                      <th className="w-[160px] px-4 py-3 font-medium">相较上周变化</th>
+                      <th className="rounded-r-2xl px-4 py-3 font-medium">总结概括</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {channelCompareMatrixRows.map((item, index) => {
+                      const isBenchmark = item.institution === BENCHMARK_INSTITUTION;
+                      return (
+                      <tr
+                        key={item.institution}
+                        className={`${index === 0 ? '' : 'border-t border-slate-100'} align-top ${isBenchmark ? 'bg-indigo-50/60' : ''}`}
+                      >
+                        <td className="px-4 py-5">
+                          <div className="flex items-center gap-2">
+                            <div className={`text-[16px] font-semibold ${isBenchmark ? 'text-indigo-700' : 'text-slate-900'}`}>{item.institution}</div>
+                            {isBenchmark && (
+                              <span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-600">我方</span>
+                            )}
+                          </div>
+                          <div className="mt-2 text-[13px] text-slate-500">
+                            本周 <span className="font-semibold text-slate-900">{item.current}</span> 条 ｜ 上周 <span className="font-semibold text-slate-700">{item.previous}</span> 条
+                          </div>
+                        </td>
+                        <td className="px-4 py-5">
+                          <div className="flex flex-col gap-1.5">
+                            {item.tendency.split('+').map((platform) => {
+                                const logo = PLATFORM_ICON_META[platform]?.logo;
+                                return (
+                                  <span
+                                    key={`${item.institution}-${platform}-tendency`}
+                                    className="inline-flex items-center gap-1.5 text-[12px] font-medium text-slate-700"
+                                  >
+                                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
+                                      {logo ? (
+                                        <img src={logo} alt={platform} className="h-full w-full object-cover" />
+                                      ) : (
+                                        <span className="text-[8px] text-slate-400">-</span>
+                                      )}
+                                    </span>
+                                    <span className="truncate">{platform}</span>
+                                  </span>
+                                );
+                              })}
+                          </div>
+                        </td>
+                        <td className="px-4 py-5">
+                          <div className="w-full">
+                            <div className="flex h-5 overflow-hidden rounded-sm bg-slate-100">
+                              {item.breakdown.map((part) => (
+                                <div
+                                  key={`${item.institution}-${part.name}`}
+                                  className={part.colorClass}
+                                  style={{ width: `${part.value}%` }}
+                                  title={`${part.name} ${part.value}%`}
+                                />
+                              ))}
+                            </div>
+                            <div className="mt-3 text-[11px] text-slate-500">
+                              {item.breakdown.map((part) => `${part.name}${part.value}%`).join(' / ')}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-5">
+                          <div className="text-[14px] font-semibold text-slate-900">总量 {item.totalChange}</div>
+                          <div className={`mt-2 text-[13px] font-medium ${item.shiftPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {item.shiftText}
+                          </div>
+                        </td>
+                        <td className="px-4 py-5 text-[13px] leading-6 text-slate-600">
+                          <div className="break-words">{item.summary}</div>
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1682,23 +2525,24 @@ const ContentCenterInsight = () => {
                 </p>
               </div>
               <div className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                自家推品 vs 同话题竞品
+                华夏基金推品 vs 同话题竞品
               </div>
             </div>
 
             <div className="space-y-3">
-              {OWN_PRODUCT_PERFORMANCE.map((item) => {
-                const topicCompetitors = TOPIC_PRODUCT_DETAILS[item.topic] || [];
+              {benchmarkProducts.map((item) => {
+                const topicCompetitors = MARKET_TOPIC_DETAILS[item.topic]?.products || [];
                 const competitorCount = Math.max(topicCompetitors.length - 1, 0);
 
                 return (
-                  <div key={item.code} className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div key={item.code} className="rounded-xl border border-indigo-200 bg-indigo-50/40 shadow-sm">
                     <div className="px-4 py-4">
                       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_0.7fr_0.9fr_1fr_0.9fr_0.8fr_auto]">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm font-semibold text-slate-900">{item.name}</span>
                             <span className="text-xs text-slate-500">{item.code}</span>
+                            <span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-600">{BENCHMARK_INSTITUTION}</span>
                           </div>
                           <div className="mt-1 text-sm text-slate-600">相关话题：{item.topic}</div>
                         </div>
@@ -1709,7 +2553,7 @@ const ContentCenterInsight = () => {
                         <div className="text-sm text-slate-600">
                           <div className="text-xs text-slate-400">推品平台</div>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            {item.platforms.map((platform) => {
+                            {filterVisiblePlatforms(item.platforms).map((platform) => {
                               const meta = PLATFORM_ICON_META[platform];
                               const logo = meta?.logo;
 
@@ -1781,21 +2625,28 @@ const ContentCenterInsight = () => {
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <article className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3">
               <div className="text-xs text-rose-700">暴涨话题数</div>
-              <div className="mt-1 text-2xl font-semibold text-rose-700">{TOPIC_SURGE_ALERTS.length}</div>
+              <div className="mt-1 text-2xl font-semibold text-rose-700">{ANOMALY_KPI.surgeTopic}</div>
             </article>
             <article className="rounded-xl border border-sky-100 bg-sky-50/70 px-4 py-3">
               <div className="text-xs text-sky-700">新出话题数</div>
-              <div className="mt-1 text-2xl font-semibold text-sky-700">{NEW_EMERGING_TOPICS.length}</div>
+              <div className="mt-1 text-2xl font-semibold text-sky-700">{ANOMALY_KPI.newTopic}</div>
             </article>
             <article className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3">
-              <div className="text-xs text-emerald-700">高贴合机构（80+）</div>
-              <div className="mt-1 text-2xl font-semibold text-emerald-700">
-                {INSTITUTION_ALIGNMENT_CHANGES.filter((item) => item.alignmentScore >= 80).length}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-emerald-700">高贴合机构（70+）</div>
+                <button
+                  type="button"
+                  onClick={() => setIsHighAlignModalOpen(true)}
+                  className="rounded-full border border-emerald-300 px-2 py-0.5 text-[11px] font-medium text-emerald-600 transition-colors hover:border-emerald-400 hover:bg-emerald-100"
+                >
+                  查看
+                </button>
               </div>
+              <div className="mt-1 text-2xl font-semibold text-emerald-700">{highAlignInstitutionList.length}</div>
             </article>
             <article className="rounded-xl border border-amber-100 bg-amber-50/70 px-4 py-3">
               <div className="text-xs text-amber-700">爆款帖子数</div>
-              <div className="mt-1 text-2xl font-semibold text-amber-700">{VIRAL_POSTS.length}</div>
+              <div className="mt-1 text-2xl font-semibold text-amber-700">{ANOMALY_KPI.viralPosts}</div>
             </article>
           </div>
 
@@ -1806,26 +2657,31 @@ const ContentCenterInsight = () => {
                 <span className="text-xs text-slate-500">按变化强度排序</span>
               </div>
               <div className="max-h-[360px] space-y-2.5 overflow-y-auto pr-1">
-                {[...TOPIC_SURGE_ALERTS, ...NEW_EMERGING_TOPICS.map((item) => ({
-                  topic: item.topic,
-                  change: item.growth,
-                  currentShare: item.share,
-                  previousShare: Math.max(item.share - 2.4, 0),
-                  reason: `首现 ${item.firstSeenDays} 天，主发平台：${item.platforms.join(' / ')}`,
-                  isNew: true,
-                }))]
-                  .sort((a, b) => b.change - a.change)
+                {[...ANOMALY_TIMELINE]
+                  .map((item) => ({
+                    ...item,
+                    countChange: item.previousCount > 0
+                      ? Math.round((item.currentCount - item.previousCount) / item.previousCount * 100)
+                      : null,
+                  }))
+                  .sort((a, b) => (b.countChange ?? 0) - (a.countChange ?? 0))
                   .map((item, index) => (
                     <article key={`${item.topic}-${index}`} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${item.isNew ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}`}>
-                          {item.isNew ? '新话题' : '暴涨'}
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${item.type === 'new' ? 'bg-sky-100 text-sky-700' : 'bg-rose-100 text-rose-700'}`}>
+                          {item.type === 'new' ? '新话题' : '暴涨'}
                         </span>
                         <span className="font-medium text-slate-900">{item.topic}</span>
-                        <span className="ml-auto text-sm font-semibold text-rose-600">+{item.change}%</span>
+                        <span className="ml-auto text-sm font-semibold text-rose-600">
+                          {item.countChange != null ? `+${item.countChange}%` : '首次出现'}
+                        </span>
                       </div>
-                      <div className="mt-1 text-xs text-slate-500">占比 {item.previousShare.toFixed(1)}% → {item.currentShare}%</div>
-                      <div className="mt-1 text-xs text-slate-500">{item.reason}</div>
+                      <div className="mt-1 text-xs text-slate-500">占比 {item.previousShare.toFixed(1)}% → {item.currentShare.toFixed(1)}%</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {item.type === 'new'
+                          ? `首现 ${item.firstSeenDays} 天，主发平台：${item.mainPlatform}`
+                          : `近期内容 ${item.currentCount} 条（前期 ${item.previousCount} 条），主发平台：${item.mainPlatform}`}
+                      </div>
                     </article>
                   ))}
               </div>
@@ -1836,23 +2692,21 @@ const ContentCenterInsight = () => {
                 <h4 className="text-sm font-semibold text-slate-900">机构跟进与平台倾向矩阵</h4>
                 <span className="text-xs text-slate-500">同屏查看“谁在跟”和“去哪发”</span>
               </div>
-              <div className="space-y-2.5">
-                {INSTITUTION_ALIGNMENT_CHANGES.map((item) => {
-                  const shift = PLATFORM_INSTITUTION_SHIFTS.find((platformItem) => platformItem.increased.includes(item.institution));
+              <div className="max-h-[360px] space-y-2.5 overflow-y-auto pr-1">
+                {contentMutationInstitutionRows.map((item) => {
                   return (
                     <article key={item.institution} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-medium text-slate-900">{item.institution}</div>
-                        <div className="text-sm font-semibold text-slate-900">贴合分 {item.alignmentScore}</div>
+                        <div className="text-sm font-semibold text-slate-400">贴合分 --</div>
                       </div>
                       <div className="mt-1 text-xs text-slate-500">{item.action}</div>
                       <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-                        {item.alignedTopics.map((topic) => (
-                          <span key={`${item.institution}-${topic}`} className="rounded-full bg-white px-2 py-0.5 text-slate-600">{topic}</span>
-                        ))}
-                        {shift && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">倾向平台：{shift.platform}</span>
-                        )}
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">倾向平台：{item.tendency}</span>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-slate-600">总量变化：{item.totalChange}</span>
+                        <span className={`rounded-full px-2 py-0.5 ${item.shiftPositive ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                          {item.shiftText}
+                        </span>
                       </div>
                     </article>
                   );
@@ -1863,126 +2717,208 @@ const ContentCenterInsight = () => {
 
           <section className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-slate-900">机构资源配置（内容推品 + 支付宝货架位）</h4>
-              <span className="text-xs text-slate-500">本周新推已标注；单屏展示 6 张，可横向滑动查看更多</span>
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">资源配置重合分析（内容推品 × 货架产品）</h4>
+                <p className="mt-0.5 text-xs text-slate-400">同时出现在内容推品和货架产品中的产品优先高亮展示</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />
+                  重合 {contentMutationResourceCards.overlapProducts.length} 个
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-sky-400" />
+                  仅内容推品 {contentMutationResourceCards.contentOnlyProducts.length} 个
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-2 w-2 rounded-full bg-slate-300" />
+                  仅货架 {contentMutationResourceCards.shelfOnlyProducts.length} 个
+                </span>
+              </div>
             </div>
-            <div className="-mx-1 overflow-x-auto pb-2">
-              <div className="flex min-w-max gap-3 px-1">
-                {INSTITUTION_RESOURCE_FOCUS.map((item) => {
-                  const isGF = item.institution === '广发基金';
-                  const weeklyNewProduct = item.mainPush?.product || item.contentPush?.[0];
-                  return (
-                    <article
-                      key={item.institution}
-                      className={`w-[calc((100vw-140px)/4)] min-w-[345px] max-w-[390px] shrink-0 rounded-xl border p-3 shadow-sm ${isGF ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-slate-50/70'}`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className={`font-medium ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{item.institution}</div>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] ${isGF ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500'}`}>
-                          资源主推
+
+            {contentMutationResourceCards.overlapProducts.length > 0 ? (
+              <>
+                <div className="mb-2 text-xs font-medium text-rose-600">● 双端重合产品</div>
+                <div className="mb-4 space-y-2">
+                  {contentMutationResourceCards.overlapProducts.map((product) => (
+                    <div key={product.name} className="rounded-lg border border-rose-200 bg-rose-50/60 px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="text-[13px] font-semibold text-rose-800">{product.name}</span>
+                          {product.code && product.code !== '--' && (
+                            <span className="ml-2 text-[11px] text-slate-400">{product.code}</span>
+                          )}
+                        </div>
+                        <span className="shrink-0 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-700">
+                          {1 + product.shelfSources.length} 处资源位
                         </span>
                       </div>
-
-                      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
-                        <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                          <div className="text-[11px] font-medium text-slate-500">内容推品</div>
-                          <div className="mt-1.5 flex flex-wrap gap-1.5">
-                            {item.contentPush.map((product) => (
-                              <span
-                                key={`${item.institution}-content-${product}`}
-                                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                                  product === weeklyNewProduct
-                                    ? 'border border-rose-200 bg-rose-50 text-rose-700'
-                                    : 'bg-sky-50 text-sky-700'
-                                }`}
-                              >
-                                {product}
-                                {product === weeklyNewProduct ? ' · 本周新推' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="pt-8 text-slate-400">+</div>
-
-                        <div className="rounded-lg border border-slate-200 bg-white px-2.5 py-2">
-                          <div className="text-[11px] font-medium text-slate-500">支付宝货架位</div>
-                          <div className="mt-1.5 flex flex-wrap gap-1.5">
-                            {item.antShelf.map((product) => (
-                              <span
-                                key={`${item.institution}-shelf-${product}`}
-                                className={`rounded-full px-2 py-0.5 text-[11px] ${
-                                  product === weeklyNewProduct
-                                    ? 'border border-rose-200 bg-rose-50 text-rose-700'
-                                    : 'bg-amber-50 text-amber-700'
-                                }`}
-                              >
-                                {product}
-                                {product === weeklyNewProduct ? ' · 本周新推' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[11px] text-sky-700">
+                          内容推品 · {product.contentCount ?? '-'}次
+                        </span>
+                        {product.shelfSources.map((s) => (
+                          <span key={s.label} className={`rounded-full px-2 py-0.5 text-[11px] ${
+                            s.tone === 'amber' ? 'bg-amber-50 text-amber-700'
+                            : s.tone === 'violet' ? 'bg-violet-50 text-violet-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                          }`}>
+                            {s.label}{s.count ? ` · ${s.count}次` : ''}
+                          </span>
+                        ))}
                       </div>
-                    </article>
-                  );
-                })}
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="mb-4 rounded-lg border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-400">
+                暂无同时出现在内容推品和货架产品中的产品
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <div className="mb-2 text-xs font-medium text-sky-600">● 仅内容推品（{contentMutationResourceCards.contentOnlyProducts.length} 个）</div>
+                <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+                  {contentMutationResourceCards.contentOnlyProducts.map((product) => (
+                    <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <span className="truncate text-[13px] text-slate-700">{product.name}</span>
+                      <span className="ml-2 shrink-0 text-[11px] text-slate-400">{product.count ?? '-'}次</span>
+                    </div>
+                  ))}
+                  {contentMutationResourceCards.contentOnlyProducts.length === 0 && (
+                    <div className="text-xs text-slate-400">暂无数据</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <div className="mb-2 text-xs font-medium text-slate-500">● 仅货架产品（{contentMutationResourceCards.shelfOnlyProducts.length} 个）</div>
+                <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+                  {contentMutationResourceCards.shelfOnlyProducts.map((product) => (
+                    <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                      <span className="truncate text-[13px] text-slate-700">{product.name}</span>
+                      <div className="ml-2 flex shrink-0 gap-1">
+                        {product.shelfSources.map((s) => (
+                          <span key={s.label} className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                            s.tone === 'amber' ? 'bg-amber-50 text-amber-600'
+                            : s.tone === 'violet' ? 'bg-violet-50 text-violet-600'
+                            : 'bg-emerald-50 text-emerald-600'
+                          }`}>{s.label}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {contentMutationResourceCards.shelfOnlyProducts.length === 0 && (
+                    <div className="text-xs text-slate-400">暂无数据</div>
+                  )}
+                </div>
               </div>
             </div>
           </section>
 
           <section className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h4 className="text-sm font-semibold text-slate-900">爆款内容墙（文章 / 帖子）</h4>
-              <span className="text-xs text-slate-500">按互动量筛选</span>
+              <span className="text-xs text-slate-500">按平台切换查看；互动量为点赞/分享/评论/收藏合计</span>
             </div>
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-              {VIRAL_POSTS.map((item) => {
-                const platformLogo = PLATFORM_ICON_META[item.platform]?.logo;
-                return (
-                  <article
-                    key={`${item.title}-${item.platform}`}
-                    className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-sm"
-                  >
-                    <div className="border-b border-slate-100 px-3 py-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span
-                            className="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
-                            title={item.platform}
-                            aria-label={item.platform}
+            {viralPlatformTabs.length > 0 ? (
+              <>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {viralPlatformTabs.map((tab) => {
+                    const count = viralPostsVisible.filter((p) => p.platform === tab).length;
+                    const active = selectedViralTab === tab;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setViralWallPlatformTab(tab)}
+                        className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                          active
+                            ? 'border-slate-800 bg-slate-800 text-white'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {tab}
+                        <span className={`ml-1 ${active ? 'text-slate-200' : 'text-slate-400'}`}>({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="max-h-[480px] overflow-y-auto pr-1">
+                  {viralPostsForWall.length ? (
+                    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                      {viralPostsForWall.map((item, vIdx) => {
+                        const platformLogo = PLATFORM_ICON_META[item.platform]?.logo;
+                        const openUrl = item.url && /^https?:\/\//i.test(item.url) ? item.url : null;
+                        return (
+                          <article
+                            key={item.url || `${item.institution}-${item.title}-${selectedViralTab}-${vIdx}`}
+                            className="overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-sm"
                           >
-                            {platformLogo ? (
-                              <img src={platformLogo} alt={item.platform} className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] text-slate-400">-</span>
-                            )}
-                          </span>
-                          <span className="truncate text-xs text-slate-500">{item.institution}</span>
-                        </div>
-                        <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-                          互动 {item.interactions}
-                        </span>
-                      </div>
-                    </div>
+                            <div className="border-b border-slate-100 px-3 py-2.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
+                                    title={item.platform}
+                                    aria-label={item.platform}
+                                  >
+                                    {platformLogo ? (
+                                      <img src={platformLogo} alt={item.platform} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400">-</span>
+                                    )}
+                                  </span>
+                                  <span className="truncate text-xs text-slate-500">{item.institution}</span>
+                                </div>
+                                <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
+                                  互动 {item.interactions}
+                                </span>
+                              </div>
+                            </div>
 
-                    <div className="px-3 py-3">
-                      <div className="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">{item.title}</div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {item.tags.map((tag) => (
-                          <span
-                            key={`${item.title}-${tag}`}
-                            className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                            <div className="px-3 py-3">
+                              {openUrl ? (
+                                <a
+                                  href={openUrl}
+                                  target="_blank"
+                                  rel="noreferrer noopener"
+                                  className="line-clamp-2 text-sm font-semibold leading-6 text-slate-900 hover:text-sky-700"
+                                >
+                                  {item.title}
+                                </a>
+                              ) : (
+                                <div className="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">{item.title}</div>
+                              )}
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {item.tags.map((tag) => (
+                                  <span
+                                    key={`${item.title}-${tag}-${vIdx}`}
+                                    className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600"
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      })}
                     </div>
-                  </article>
-                );
-              })}
-            </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-500">
+                      当前平台暂无爆款样本
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-500">
+                暂无爆款内容数据
+              </div>
+            )}
           </section>
         </section>
       )}
@@ -2014,11 +2950,13 @@ const ContentCenterInsight = () => {
                       <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
                         内容数量 {topicCurrentStats.count}
                       </span>
-                      <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-rose-600">
-                        近 7 日 +{topicCurrentStats.growth}%
-                      </span>
+                      {topicCurrentStats.growth !== undefined && topicCurrentStats.growth !== null && (
+                        <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-rose-600">
+                          近 7 日 +{formatPercentDisplay(topicCurrentStats.growth)}%
+                        </span>
+                      )}
                       <span className="inline-flex rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600">
-                        热度占比 {topicCurrentStats.share}%
+                        {getTopicMetricLabel(activePlatform)} {formatPercentDisplay(topicCurrentStats.share)}%
                       </span>
                     </>
                   )}
@@ -2057,32 +2995,41 @@ const ContentCenterInsight = () => {
 
               <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="text-sm font-medium text-slate-500">渠道热度</div>
-                  <div className="text-xs text-slate-400">五个平台热度并列对比</div>
+                  <div className="text-sm font-medium text-slate-500">{selectedTopicMarketDetail ? '渠道渗透率' : '渠道热度'}</div>
+                  <div className="text-xs text-slate-400">{selectedTopicMarketDetail ? '各平台渗透率%' : '四个平台热度并列对比'}</div>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                <div className="space-y-3">
                   {channelHeatList.map((item) => (
-                    <div key={`${selectedTopic}-${item.platform}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
-                          title={item.platform}
-                          aria-label={item.platform}
-                        >
-                          {PLATFORM_ICON_META[item.platform]?.logo ? (
-                            <img
-                              src={PLATFORM_ICON_META[item.platform].logo}
-                              alt={item.platform}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-[10px] text-slate-400">-</span>
-                          )}
-                        </span>
-                        <span className="text-xs text-slate-500">{channelHeatLabel(item.value)}</span>
-                      </div>
-                      <div className="mt-2 text-right text-lg font-semibold text-slate-900">
-                        {item.value}%
+                    <div key={`${selectedTopic}-${item.platform}`} className="flex items-center gap-3">
+                      <span
+                        className="inline-flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white"
+                        title={item.platform}
+                        aria-label={item.platform}
+                      >
+                        {PLATFORM_ICON_META[item.platform]?.logo ? (
+                          <img
+                            src={PLATFORM_ICON_META[item.platform].logo}
+                            alt={item.platform}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[10px] text-slate-400">-</span>
+                        )}
+                      </span>
+                      <div className="min-w-[64px] shrink-0 text-xs text-slate-500">{item.platform}</div>
+                      <div className="flex flex-1 items-center gap-2">
+                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-2.5 rounded-full bg-slate-700 transition-all"
+                            style={{ width: `${Math.min(item.value, 100)}%` }}
+                          />
+                        </div>
+                        <div className="w-[52px] shrink-0 text-right text-sm font-semibold text-slate-900">
+                          {formatPercentDisplay(item.value)}%
+                        </div>
+                        {selectedTopicMarketDetail && (
+                          <div className="w-[52px] shrink-0 text-right text-xs text-slate-400">{item.count} 条</div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2090,26 +3037,28 @@ const ContentCenterInsight = () => {
               </section>
 
               <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
-                <div className="mb-4 text-sm font-medium text-slate-500">机构内容占比</div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {institutionShareList.map((item) => {
-                    const isGF = item.institution === '广发基金';
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-sm font-medium text-slate-500">机构内容占比</div>
+                  <div className="text-xs text-slate-400">共 {institutionShareList.length} 家机构，单页展示 {INSTITUTION_PAGE_SIZE} 家</div>
+                </div>
+                <div className="grid min-h-[240px] grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {paginatedInstitutionShareList.map((item) => {
                     return (
                     <div
                       key={`${selectedTopic}-${item.institution}`}
-                      className={`rounded-xl border p-3 ${isGF ? 'border-emerald-300 bg-emerald-50/70' : 'border-slate-200 bg-slate-50'}`}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3"
                     >
                       <div className="mb-2 flex items-center justify-between gap-2">
-                        <span className={`text-sm font-medium ${isGF ? 'text-emerald-700' : 'text-slate-700'}`}>{item.institution}</span>
-                        <span className={`text-sm font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{item.value}%</span>
+                        <span className="text-sm font-medium text-slate-700">{item.institution}</span>
+                        <span className="text-sm font-semibold text-slate-900">{item.value}%</span>
                       </div>
-                      <div className={`h-2.5 rounded-full ${isGF ? 'bg-emerald-100' : 'bg-white'}`}>
+                      <div className="h-2.5 rounded-full bg-white">
                         <div
-                          className={`h-2.5 rounded-full ${isGF ? 'bg-emerald-600' : 'bg-slate-800'}`}
+                          className="h-2.5 rounded-full bg-slate-800"
                           style={{ width: `${item.value}%` }}
                         />
                       </div>
-                      <div className={`mt-2 flex items-center justify-between text-[11px] ${isGF ? 'text-emerald-700' : 'text-slate-500'}`}>
+                      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
                         <span>{item.primary ? '核心参与机构' : '长尾参与机构'}</span>
                         <span>发布内容约 {item.count}</span>
                       </div>
@@ -2117,16 +3066,24 @@ const ContentCenterInsight = () => {
                     );
                   })}
                 </div>
+
+                <CompactPagination
+                  currentPage={institutionPage}
+                  totalPages={institutionTotalPages}
+                  onPageChange={setInstitutionPage}
+                />
               </section>
 
               <section className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="text-sm font-medium text-slate-500">机构推品列表</div>
-                  <div className="text-sm text-slate-400">包含机构推品占比、关联内容数、内容热度和渠道分布</div>
+                  <div className="text-sm text-slate-400">{selectedTopicMarketDetail ? '包含机构推品占比、关联内容数和渠道分布' : '包含机构推品占比、关联内容数、内容热度和渠道分布'}</div>
                 </div>
 
-                <div className="space-y-2.5">
-                  {modalProducts.map((detail) => {
+                <div className="mb-4 text-xs text-slate-400">共 {modalProducts.length} 条关联产品，单页展示 {PRODUCT_PAGE_SIZE} 条</div>
+
+                <div className="min-h-[420px] space-y-2.5">
+                  {paginatedModalProducts.map((detail) => {
                     const isGF = detail.institution === '广发基金';
                     return (
                     <div
@@ -2143,13 +3100,16 @@ const ContentCenterInsight = () => {
                             <div className={`inline-flex items-center gap-3 text-sm ${isGF ? 'text-emerald-700' : 'text-slate-500'}`}>
                               <span>机构推品资源占比 <span className={`font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{detail.ratio}%</span></span>
                               <span>关联内容数 <span className={`font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{detail.count}</span></span>
-                              <span>热度 <span className={`font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{detail.heat}</span></span>
+                              {detail.code && <span>代码 <span className={`font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{detail.code}</span></span>}
+                              {detail.heat !== undefined && detail.heat !== null && <span>热度 <span className={`font-semibold ${isGF ? 'text-emerald-800' : 'text-slate-900'}`}>{detail.heat}</span></span>}
                             </div>
                           </div>
                         </div>
-                        <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${heatBadgeClass[detail.heatLabel]}`}>
-                          {detail.heatLabel}
-                        </span>
+                        {detail.heatLabel && (
+                          <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${heatBadgeClass[detail.heatLabel]}`}>
+                            {detail.heatLabel}
+                          </span>
+                        )}
                       </div>
 
                       <div className="mt-2.5">
@@ -2203,6 +3163,12 @@ const ContentCenterInsight = () => {
                     );
                   })}
                 </div>
+
+                <CompactPagination
+                  currentPage={productPage}
+                  totalPages={productTotalPages}
+                  onPageChange={setProductPage}
+                />
 
                 {modalProducts.length === 0 && (
                   <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
@@ -2447,6 +3413,118 @@ const ContentCenterInsight = () => {
                   </article>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isHighAlignModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-8">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">高贴合机构详情</h3>
+                <div className="mt-1 text-sm text-slate-500">
+                  话题覆盖主线相似度 &gt; 70% 的机构，共 {highAlignInstitutionList.length} 家
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHighAlignModalOpen(false)}
+                className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-500 transition-colors hover:bg-slate-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="max-h-[calc(90vh-84px)] overflow-y-auto px-6 py-5 space-y-3">
+              {highAlignInstitutionList.map((item) => (
+                <div key={item.institution} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-slate-900">{item.institution}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-2 rounded-full bg-emerald-500"
+                          style={{ width: `${item.similarity}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-bold text-emerald-700">{item.similarity}%</span>
+                    </div>
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">覆盖 {item.coveredTopics} 个话题</div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {item.topTopics.map((t) => (
+                      <span key={t.topic} className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                        {t.topic}
+                        <span className="text-slate-400">{t.count}条</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMissingTopicModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4 py-8">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h3 className="text-xl font-semibold text-slate-900">缺失热点明细</h3>
+                <div className="mt-1 text-sm text-slate-500">
+                  华夏基金尚未涉及的市场热点话题，共 {missingTopicList.length} 个
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMissingTopicModalOpen(false)}
+                className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-500 transition-colors hover:bg-slate-50"
+              >
+                关闭
+              </button>
+            </div>
+            <div className="max-h-[calc(90vh-84px)] overflow-y-auto px-6 py-5 space-y-3">
+              {missingTopicList.map((item) => (
+                <div key={item.topic} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-slate-900">{item.topic}</span>
+                      <span className="inline-flex rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-600">未覆盖</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <span>全平台内容数 <span className="font-semibold text-slate-800">{item.totalCount}</span></span>
+                      <span>热度占比 <span className="font-semibold text-slate-800">{formatPercentDisplay(item.totalShare)}%</span></span>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-3">
+                    {item.platformBreakdown.filter((p) => p.count > 0).map((p) => {
+                      const logo = PLATFORM_ICON_META[p.platform]?.logo;
+                      return (
+                        <span key={p.platform} className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-slate-200 px-2.5 py-1 text-xs">
+                          <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-white">
+                            {logo ? <img src={logo} alt={p.platform} className="h-full w-full object-cover" /> : <span className="text-[8px] text-slate-400">-</span>}
+                          </span>
+                          <span className="text-slate-600">{p.platform}</span>
+                          <span className="font-semibold text-slate-800">{p.count}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {item.topInstitutions.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] text-slate-400">已入局：</span>
+                      {item.topInstitutions.map((inst) => (
+                        <span key={inst.institution} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+                          {inst.institution}
+                          <span className="text-slate-400">{inst.count}条</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

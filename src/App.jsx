@@ -5,7 +5,7 @@ import ContentCenterInsight from './components/ContentCenterInsight';
 import OperationsInsight from './components/OperationsInsight';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('multidim');
+  const [currentPage, setCurrentPage] = useState('content-center-insight');
 
   const renderPage = () => {
     if (currentPage === 'content-center-insight') {

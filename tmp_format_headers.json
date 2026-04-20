@@ -1,0 +1,25 @@
+{
+  "sheets": [
+    "Result 1",
+    "Query"
+  ],
+  "headers": {
+    "Result 1": [
+      "平台",
+      "内容载体",
+      "本周数量",
+      "上周数量",
+      "数量变化",
+      "本周平台总数",
+      "上周平台总数",
+      "本周占比",
+      "上周占比",
+      "本周总热度",
+      "上周总热度",
+      "热度变化"
+    ],
+    "Query": [
+      "WITH raw_data AS (\n    -- 1. 提取两个周期的数据并打上周期标签\n    SELECT\n        platform,\n        content_carrier,\n        CASE\n            WHEN published_at >= '2026-04-13 00:00:00+08' AND published_at <= '2026-04-17 23:59:59+08' THEN 'current_week'\n            WHEN published_at >= '2026-04-06 00:00:00+08' AND published_at <= '2026-04-10 23:59:59+08' THEN 'last_week'\n        END AS period,\n        (\n            COALESCE(NULLIF(interaction_snapshot ->> 'likes', '')::int, 0) +\n            COALESCE(NULLIF(interaction_snapshot ->> 'shared', '')::int, 0) +\n            COALESCE(NULLIF(interaction_snapshot ->> 'comments', '')::int, 0) +\n            COALESCE(NULLIF(interaction_snapshot ->> 'collected', '')::int, 0)\n        ) AS heat\n    FROM dltest.dl_leshu.materials\n    WHERE (published_at >= '2026-04-13 00:00:00+08' AND published_at <= '2026-04-17 23:59:59+08')\n       OR (published_at >= '2026-04-06 00:00:00+08' AND published_at <= '2026-04-10 23:59:59+08')\n),\nagg_by_carrier AS (\n    -- 2. 按平台、体裁、周期进行初步聚合\n    SELECT\n        platform,\n        content_carrier,\n        SUM(CASE WHEN period = 'current_week' THEN 1 ELSE 0 END) AS cw_count,\n        SUM(CASE WHEN period = 'last_week' THEN 1 ELSE 0 END) AS lw_count,\n        SUM(CASE WHEN period = 'current_week' THEN heat ELSE 0 END) AS cw_heat,\n        SUM(CASE WHEN period = 'last_week' THEN heat ELSE 0 END) AS lw_heat\n    FROM raw_data\n    GROUP BY platform, content_carrier\n)\n-- 3. 计算平台总数、分布占比及差距\nSELECT\n    platform AS \"平台\",\n    content_carrier AS \"内容载体\",\n\n    -- 数量分布及对比\n    cw_count AS \"本周数量\",\n    lw_count AS \"上周数量\",\n    (cw_count - lw_count) AS \"数量变化\",\n\n    -- 平台总数对比\n    SUM(cw_count) OVER(PARTITION BY platform) AS \"本周平台总数\",\n    SUM(lw_count) OVER(PARTITION BY platform) AS \"上周平台总数\",\n\n    -- 占比计算\n    ROUND(cw_count * 100.0 / NULLIF(SUM(cw_count) OVER(PARTITION BY platform), 0), 2) || '%' AS \"本周占比\",\n    ROUND(lw_count * 100.0 / NULLIF(SUM(lw_count) OVER(PARTITION BY platform), 0), 2) || '%' AS \"上周占比\",\n\n    -- 热度对比\n    cw_heat AS \"本周总热度\",\n    lw_heat AS \"上周总热度\",\n    (cw_heat - lw_heat) AS \"热度变化\"\n\nFROM agg_by_carrier\nORDER BY platform, cw_count DESC"
+    ]
+  }
+}
