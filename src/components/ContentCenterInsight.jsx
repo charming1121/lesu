@@ -23,6 +23,7 @@ const HIDDEN_PLATFORMS = new Set(['抖音']);
 const INSTITUTION_PAGE_SIZE = 6;
 const PRODUCT_PAGE_SIZE = 4;
 const MULTI_CHANNEL_PAGE_SIZE = 8;
+const SHELF_LIST_PAGE_SIZE = 10;
 const BENCHMARK_INSTITUTION = '华夏基金';
 
 const TOPIC_SUMMARY = {
@@ -1004,6 +1005,9 @@ const ContentCenterInsight = () => {
   const [isTopicCompareExpanded, setIsTopicCompareExpanded] = useState(false);
   const [isHighAlignModalOpen, setIsHighAlignModalOpen] = useState(false);
   const [viralWallPlatformTab, setViralWallPlatformTab] = useState('小红书');
+  const [shelfListPage, setShelfListPage] = useState(1);
+  const [isContentOnlyExpanded, setIsContentOnlyExpanded] = useState(false);
+  const [isShelfOnlyExpanded, setIsShelfOnlyExpanded] = useState(false);
   const [institutionPage, setInstitutionPage] = useState(1);
   const [productPage, setProductPage] = useState(1);
   const [multiChannelProductPage, setMultiChannelProductPage] = useState(1);
@@ -1127,18 +1131,42 @@ const ContentCenterInsight = () => {
   }, []);
   const shelfExposureList = useMemo(() => {
     const shelfTab = shelfListTab === '支付宝货架' ? '基金货架' : shelfListTab;
+    const isEtf = shelfTab === 'ETF曝光位';
     const source =
       shelfTab === '联合运营'
         ? JOINT_OPERATION_SHELF_LIST
-        : shelfTab === 'ETF曝光位'
+        : isEtf
           ? ETF_EXPOSURE_COUNT_LIST
           : SHELF_EXPOSURE_PRODUCT_LIST;
-    return source.map((item, index) => ({
-      ...item,
-      tags: splitShelfDetailTags(item.detail),
-      rowKey: `${shelfTab}-${index}-${item.name}`,
-    }));
+    return source.map((item, index) => {
+      let tags;
+      if (isEtf) {
+        // ETF曝光位：按平台分组，显示「平台(N个点位)」
+        const rawTags = splitShelfDetailTags(item.detail);
+        const platformMap = new Map();
+        rawTags.forEach((tag) => {
+          const dashIdx = tag.indexOf('-');
+          const platform = dashIdx > -1 ? tag.slice(0, dashIdx) : tag;
+          platformMap.set(platform, (platformMap.get(platform) || 0) + 1);
+        });
+        tags = Array.from(platformMap.entries()).map(([platform, cnt]) =>
+          cnt > 1 ? `${platform}(${cnt})` : platform
+        );
+      } else {
+        tags = splitShelfDetailTags(item.detail);
+      }
+      return { ...item, tags, rowKey: `${shelfTab}-${index}-${item.name}` };
+    });
   }, [shelfListTab]);
+
+  const paginatedShelfExposureList = useMemo(
+    () => paginateItems(shelfExposureList, shelfListPage, SHELF_LIST_PAGE_SIZE),
+    [shelfExposureList, shelfListPage]
+  );
+  const shelfListTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(shelfExposureList.length / SHELF_LIST_PAGE_SIZE)),
+    [shelfExposureList]
+  );
 
   const multiChannelProductHotListLegacy = useMemo(() => {
     const rows = INSTITUTION_RESOURCE_FOCUS.map((item) => {
@@ -1265,8 +1293,9 @@ const ContentCenterInsight = () => {
       ...ETF_EXPOSURE_COUNT_LIST,
       ...JOINT_OPERATION_SHELF_LIST,
     ];
-    allShelfItems.forEach((item, index) => {
-      mergeVisibleProduct(item.name, item.code, item.institution, '货架产品', 120 - index * 3);
+    allShelfItems.forEach((item) => {
+      // 以曝光次数作为排序权重，避免超大列表时 index 导致极端负值
+      mergeVisibleProduct(item.name, item.code, item.institution, '货架产品', item.count || 1);
     });
 
     return [...mergedMap.values()]
@@ -2164,24 +2193,30 @@ const ContentCenterInsight = () => {
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-900">货架产品列表</div>
                 <div className="flex items-center gap-2">
-                  {['基金货架', 'ETF曝光位', '联合运营'].map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setShelfListTab(tab)}
-                      className={`rounded-full px-2.5 py-1 text-xs ${
-                        shelfListTab === tab || (tab === '基金货架' && shelfListTab === '支付宝货架')
-                          ? 'bg-slate-800 text-white'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {tab}
-                    </button>
-                  ))}
+                  {['基金货架', 'ETF曝光位', '联合运营'].map((tab) => {
+                    const tabCount = tab === '联合运营' ? JOINT_OPERATION_SHELF_LIST.length
+                      : tab === 'ETF曝光位' ? ETF_EXPOSURE_COUNT_LIST.length
+                      : SHELF_EXPOSURE_PRODUCT_LIST.length;
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => { setShelfListTab(tab); setShelfListPage(1); }}
+                        className={`rounded-full px-2.5 py-1 text-xs ${
+                          shelfListTab === tab || (tab === '基金货架' && shelfListTab === '支付宝货架')
+                            ? 'bg-slate-800 text-white'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {tab}
+                        <span className="ml-1 opacity-70">({tabCount})</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               <div className="max-h-[420px] space-y-2.5 overflow-y-auto pr-1">
-                {shelfExposureList.map((item) => (
+                {paginatedShelfExposureList.map((item) => (
                   <div key={item.rowKey} className="rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <span className="inline-flex min-w-0 flex-1 items-baseline gap-2">
@@ -2206,6 +2241,11 @@ const ContentCenterInsight = () => {
                   </div>
                 ))}
               </div>
+              <CompactPagination
+                currentPage={shelfListPage}
+                totalPages={shelfListTotalPages}
+                onPageChange={setShelfListPage}
+              />
             </article>
           </div>
 
@@ -2780,40 +2820,58 @@ const ContentCenterInsight = () => {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <div className="mb-2 text-xs font-medium text-sky-600">● 仅内容推品（{contentMutationResourceCards.contentOnlyProducts.length} 个）</div>
-                <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
-                  {contentMutationResourceCards.contentOnlyProducts.map((product) => (
-                    <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <span className="truncate text-[13px] text-slate-700">{product.name}</span>
-                      <span className="ml-2 shrink-0 text-[11px] text-slate-400">{product.count ?? '-'}次</span>
-                    </div>
-                  ))}
-                  {contentMutationResourceCards.contentOnlyProducts.length === 0 && (
-                    <div className="text-xs text-slate-400">暂无数据</div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsContentOnlyExpanded((v) => !v)}
+                  className="mb-2 flex w-full items-center justify-between text-xs font-medium text-sky-600 hover:text-sky-700"
+                >
+                  <span>● 仅内容推品（{contentMutationResourceCards.contentOnlyProducts.length} 个）</span>
+                  <span className="text-slate-400">{isContentOnlyExpanded ? '▲ 收起' : '▼ 展开'}</span>
+                </button>
+                {isContentOnlyExpanded && (
+                  <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+                    {contentMutationResourceCards.contentOnlyProducts.map((product) => (
+                      <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <span className="truncate text-[13px] text-slate-700">{product.name}</span>
+                        <span className="ml-2 shrink-0 text-[11px] text-slate-400">{product.count ?? '-'}次</span>
+                      </div>
+                    ))}
+                    {contentMutationResourceCards.contentOnlyProducts.length === 0 && (
+                      <div className="text-xs text-slate-400">暂无数据</div>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
-                <div className="mb-2 text-xs font-medium text-slate-500">● 仅货架产品（{contentMutationResourceCards.shelfOnlyProducts.length} 个）</div>
-                <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
-                  {contentMutationResourceCards.shelfOnlyProducts.map((product) => (
-                    <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                      <span className="truncate text-[13px] text-slate-700">{product.name}</span>
-                      <div className="ml-2 flex shrink-0 gap-1">
-                        {product.shelfSources.map((s) => (
-                          <span key={s.label} className={`rounded-full px-1.5 py-0.5 text-[10px] ${
-                            s.tone === 'amber' ? 'bg-amber-50 text-amber-600'
-                            : s.tone === 'violet' ? 'bg-violet-50 text-violet-600'
-                            : 'bg-emerald-50 text-emerald-600'
-                          }`}>{s.label}</span>
-                        ))}
+                <button
+                  type="button"
+                  onClick={() => setIsShelfOnlyExpanded((v) => !v)}
+                  className="mb-2 flex w-full items-center justify-between text-xs font-medium text-slate-500 hover:text-slate-700"
+                >
+                  <span>● 仅货架产品（{contentMutationResourceCards.shelfOnlyProducts.length} 个）</span>
+                  <span className="text-slate-400">{isShelfOnlyExpanded ? '▲ 收起' : '▼ 展开'}</span>
+                </button>
+                {isShelfOnlyExpanded && (
+                  <div className="max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+                    {contentMutationResourceCards.shelfOnlyProducts.map((product) => (
+                      <div key={product.name} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                        <span className="truncate text-[13px] text-slate-700">{product.name}</span>
+                        <div className="ml-2 flex shrink-0 gap-1">
+                          {product.shelfSources.map((s) => (
+                            <span key={s.label} className={`rounded-full px-1.5 py-0.5 text-[10px] ${
+                              s.tone === 'amber' ? 'bg-amber-50 text-amber-600'
+                              : s.tone === 'violet' ? 'bg-violet-50 text-violet-600'
+                              : 'bg-emerald-50 text-emerald-600'
+                            }`}>{s.label}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                  {contentMutationResourceCards.shelfOnlyProducts.length === 0 && (
-                    <div className="text-xs text-slate-400">暂无数据</div>
-                  )}
-                </div>
+                    ))}
+                    {contentMutationResourceCards.shelfOnlyProducts.length === 0 && (
+                      <div className="text-xs text-slate-400">暂无数据</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </section>
