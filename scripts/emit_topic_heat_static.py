@@ -1,4 +1,4 @@
-"""从 assets/静态数据/话题热度分析_v9.xlsx 生成 src/data/topicHeatAnalysisStatic.js"""
+"""从 assets/静态数据/话题热度分析_v10.xlsx 生成 src/data/topicHeatAnalysisStatic.js"""
 import json
 import math
 from collections import defaultdict
@@ -7,7 +7,7 @@ from pathlib import Path
 import openpyxl
 
 ROOT = Path(__file__).resolve().parents[1]
-XLSX = ROOT / "assets" / "静态数据" / "话题热度分析_v9.xlsx"
+XLSX = ROOT / "assets" / "静态数据" / "话题热度分析_v10.xlsx"
 OUT = ROOT / "src" / "data" / "topicHeatAnalysisStatic.js"
 
 PLATFORMS = ["小红书", "蚂蚁财富号", "微信公众号", "雪球"]
@@ -259,7 +259,7 @@ def main():
     market_topic_heat_by_platform.update(platform_lists)
 
     lines = [
-        "// 来源：assets/静态数据/话题热度分析_v9.xlsx",
+        "// 来源：assets/静态数据/话题热度分析_v10.xlsx",
         "// 工作表：话题热度榜、渠道渗透率、机构×话题占比、机构推品列表",
         "// 重新生成：python scripts/emit_topic_heat_static.py",
         "export const MARKET_TOPIC_HEAT_BY_PLATFORM = " + json.dumps(market_topic_heat_by_platform, ensure_ascii=False, indent=2) + ";",

@@ -1,4 +1,4 @@
-"""从 assets/静态数据/话题热度分析_v9.xlsx 中的"异动时间线"和"内容异动KPI"sheet
+"""从 assets/静态数据/话题热度分析_v10.xlsx 中的"异动时间线"和"内容异动KPI"sheet
 生成 src/data/contentAnomalyStatic.js"""
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import openpyxl
 
 ROOT = Path(__file__).resolve().parents[1]
-XLSX = ROOT / "assets" / "静态数据" / "话题热度分析_v9.xlsx"
+XLSX = ROOT / "assets" / "静态数据" / "话题热度分析_v10.xlsx"
 OUT = ROOT / "src" / "data" / "contentAnomalyStatic.js"
 
 
@@ -38,7 +38,7 @@ def main():
     wb = openpyxl.load_workbook(XLSX, read_only=True, data_only=True)
 
     # ─── 读取 内容异动KPI ──────────────────────────────────────────────
-    kpi_ws = wb.worksheets[5]  # sheet index 5
+    kpi_ws = wb["内容异动KPI"]
     kpi = {}
     for row in kpi_ws.iter_rows(min_row=2, values_only=True):
         if not row or row[0] is None:
@@ -89,7 +89,7 @@ def main():
 
     # ─── 写出 JS ───────────────────────────────────────────────────────
     lines = [
-        "// 来源：assets/静态数据/话题热度分析_v9.xlsx（异动时间线 + 内容异动KPI）",
+        "// 来源：assets/静态数据/话题热度分析_v10.xlsx（异动时间线 + 内容异动KPI）",
         "// 重新生成：python scripts/emit_anomaly_static.py",
         "",
         "export const ANOMALY_KPI = {",
